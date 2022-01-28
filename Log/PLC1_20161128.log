@@ -1,0 +1,259 @@
+[14:41:54] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:54] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:54] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:54] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:54] PLC1 Read1 Data [12]
+[14:41:54] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:54] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:54] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:54] PLC1 Read1 Data [2]
+[14:41:54] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:54] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:54] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:54] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:54] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:54] PLC1 Read1 Data [12]
+[14:41:54] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:54] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:54] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:54] PLC1 Read1 Data [2]
+[14:41:54] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:54] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:54] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:54] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:55] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:55] PLC1 Read1 Data [12]
+[14:41:55] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:55] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:55] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:55] PLC1 Read1 Data [2]
+[14:41:55] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:55] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:55] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:55] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:55] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:55] PLC1 Read1 Data [12]
+[14:41:55] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:55] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:55] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:55] PLC1 Read1 Data [2]
+[14:41:55] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:55] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:55] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:55] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:55] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:55] PLC1 Read1 Data [12]
+[14:41:55] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:55] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:55] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:55] PLC1 Read1 Data [2]
+[14:41:55] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:55] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:55] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:55] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:55] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:55] PLC1 Read1 Data [12]
+[14:41:55] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:55] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:55] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:55] PLC1 Read1 Data [2]
+[14:41:55] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:56] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:56] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:56] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:56] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:56] PLC1 Read1 Data [12]
+[14:41:56] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:56] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:56] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:56] PLC1 Read1 Data [2]
+[14:41:56] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:56] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:56] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:56] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:56] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:56] PLC1 Read1 Data [12]
+[14:41:56] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:56] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:56] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:56] PLC1 Read1 Data [2]
+[14:41:56] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:56] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:56] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:56] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:56] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:56] PLC1 Read1 Data [12]
+[14:41:56] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:56] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:56] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:56] PLC1 Read1 Data [2]
+[14:41:56] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:56] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:56] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:56] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:56] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:56] PLC1 Read1 Data [12]
+[14:41:57] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:57] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:57] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:57] PLC1 Read1 Data [2]
+[14:41:57] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:57] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:57] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:57] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:57] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:57] PLC1 Read1 Data [12]
+[14:41:57] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:57] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:57] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:57] PLC1 Read1 Data [2]
+[14:41:57] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:57] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:57] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:57] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:57] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:57] PLC1 Read1 Data [12]
+[14:41:57] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:57] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:57] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:57] PLC1 Read1 Data [2]
+[14:41:57] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:57] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:57] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:57] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:57] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:57] PLC1 Read1 Data [12]
+[14:41:57] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:57] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:57] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:57] PLC1 Read1 Data [2]
+[14:41:57] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:57] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:57] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:58] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:58] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:58] PLC1 Read1 Data [12]
+[14:41:58] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:58] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:58] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:58] PLC1 Read1 Data [2]
+[14:41:58] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:58] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:58] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:58] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:58] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:58] PLC1 Read1 Data [12]
+[14:41:58] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:58] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:58] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:58] PLC1 Read1 Data [2]
+[14:41:58] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:58] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:58] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:58] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:58] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:58] PLC1 Read1 Data [12]
+[14:41:58] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:58] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:58] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:58] PLC1 Read1 Data [2]
+[14:41:58] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:58] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:58] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:58] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:58] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:58] PLC1 Read1 Data [12]
+[14:41:58] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:58] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:58] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:58] PLC1 Read1 Data [2]
+[14:41:58] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:59] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:59] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:59] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:59] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:59] PLC1 Read1 Data [12]
+[14:41:59] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:59] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:59] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:59] PLC1 Read1 Data [2]
+[14:41:59] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:59] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:59] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:59] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:59] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:59] PLC1 Read1 Data [12]
+[14:41:59] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:59] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:59] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:59] PLC1 Read1 Data [2]
+[14:41:59] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:59] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:59] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:59] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:59] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:59] PLC1 Read1 Data [12]
+[14:41:59] [RECV] PLC Word(Word) Area PLC Communication End
+[14:41:59] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:41:59] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:41:59] PLC1 Read1 Data [2]
+[14:41:59] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:41:59] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:41:59] [SEND] PLC Word(Word) Area PLC Communication End
+[14:41:59] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:41:59] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:41:59] PLC1 Read1 Data [12]
+[14:42:00] [RECV] PLC Word(Word) Area PLC Communication End
+[14:42:00] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:42:00] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:42:00] PLC1 Read1 Data [2]
+[14:42:00] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:42:00] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:42:00] [SEND] PLC Word(Word) Area PLC Communication End
+[14:42:00] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:42:00] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:42:00] PLC1 Read1 Data [12]
+[14:42:00] [RECV] PLC Word(Word) Area PLC Communication End
+[14:42:00] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:42:00] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:42:00] PLC1 Read1 Data [2]
+[14:42:00] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:42:00] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:42:00] [SEND] PLC Word(Word) Area PLC Communication End
+[14:42:00] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:42:00] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:42:00] PLC1 Read1 Data [12]
+[14:42:00] [RECV] PLC Word(Word) Area PLC Communication End
+[14:42:00] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:42:00] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:42:00] PLC1 Read1 Data [2]
+[14:42:00] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:42:00] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:42:00] [SEND] PLC Word(Word) Area PLC Communication End
+[14:42:00] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:42:00] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:42:00] PLC1 Read1 Data [12]
+[14:42:00] [RECV] PLC Word(Word) Area PLC Communication End
+[14:42:00] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:42:00] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:42:00] PLC1 Read1 Data [2]
+[14:42:00] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:42:01] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:42:01] [SEND] PLC Word(Word) Area PLC Communication End
+[14:42:01] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:42:01] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:42:01] PLC1 Read1 Data [12]
+[14:42:01] [RECV] PLC Word(Word) Area PLC Communication End
+[14:42:01] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:42:01] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:42:01] PLC1 Read1 Data [2]
+[14:42:01] [RECV] PLC Word(Bit)  Area PLC Communication End
+[14:42:01] [SEND] PLC Word(Word) Area WRITE PROCESS Start
+[14:42:01] [SEND] PLC Word(Word) Area PLC Communication End
+[14:42:01] [RECV] PLC Word(Word) Area READ PROCESS Start
+[14:42:01] [PLC1]: [RECV] PLC Word(Word) Area  Memory Read Success
+[14:42:01] PLC1 Read1 Data [12]
+[14:42:01] [RECV] PLC Word(Word) Area PLC Communication End
+[14:42:01] [RECV] PLC Word(Bit)  Area READ PROCESS Start
+[14:42:01] [PLC1]: [RECV] PLC Word(Bit)  Area  Memory Read Success
+[14:42:01] PLC1 Read1 Data [2]
