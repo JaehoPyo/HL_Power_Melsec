@@ -71,6 +71,7 @@ type
     plTimeOut1: TPanel;
     gb_SC_COMM: TGroupBox;
     ShpCon: TShape;
+    Button2: TButton;
 
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -87,6 +88,7 @@ type
     procedure MainDatabaseAfterDisconnect(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure cbUsed1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
 
   private
     { Private declarations }
@@ -232,8 +234,8 @@ begin
   begin
     for i := START_PLCNO to END_PLCNO do
     begin
-      if TCheckBox(Self.FindComponent('cbUsed'+IntToStr(i))).Checked then
-         bbCommClick(TBitBtn(Self.FindComponent('bbComm'+IntToStr(i))));
+//      if TCheckBox(Self.FindComponent('cbUsed'+IntToStr(i))).Checked then
+//         bbCommClick(TBitBtn(Self.FindComponent('bbComm'+IntToStr(i))));
     end;
   end;
   if DBConChk then ShpCon.Brush.Color := clLime
@@ -255,7 +257,7 @@ begin
   if TBitBtn(Self.FindComponent('bbComm'+IntToStr(i))).Caption = '통신시작' then
   begin
     if not TCheckBox(Self.FindComponent('cbUsed'+IntToStr(i))).Checked then Exit;
-{
+
     if RunMode then
     begin
     // Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(i))).Open ;
@@ -271,8 +273,7 @@ begin
     begin
       Result := 0 ;
     end;
-}
-    Result := 0;
+
     if Result = 0 then
     begin
       COMM_ON[i] := True ;
@@ -737,8 +738,9 @@ var
   Result, Net_Size, i, j: integer ;
   strSQL_U, strSQL_I, strSQL, tempSQL, tempSQL2, tempSQL3 : String ;
   Net_Addr : WideString ;
-  Buffer : Array [0..11] of integer ;
-  WordData : Array [0..11] of String;
+  Buffer : Array [0..45] of integer ;
+  WordData : Array [0..45] of String;
+  tmp : string;
 begin
   FillChar(Buffer, sizeof(Buffer), 0 );
 
@@ -746,25 +748,99 @@ begin
   // CH01 ~ CH03 : SC D(Word)영역
   //++++++++++++++++++++++++++++++
   Net_Addr := 'D0200' ;
-  Net_Size := 12 ;
+  Net_Size := 48 ;
 
   //++++++++++++
   // Data Read
   //++++++++++++
-  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
+// 이거사용  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
 //Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).ReadDeviceBlock2(Net_Addr, Net_Size, Buffer[0] ) ;
+
+  // CH 01 word 영역
+  Buffer[0] := 1;         // j = 1 , i = 0
+  Buffer[1] := 1;
+  Buffer[2] := 0;
+  Buffer[3] := 0;
+
+  // CH 02 word 영역
+  Buffer[4] := 0;         // j = 2 , i = 4
+  Buffer[5] := 0;
+  Buffer[6] := 0;
+  Buffer[7] := 0;
+
+  // CH 03 word 영역
+  Buffer[8] := 0;         // j = 3 , i = 8
+  Buffer[9] := 0;
+
+  // CH 04 bit 영역
+  Buffer[10] := 50048;    // j = 4 , i = 10
+
+  // CH 05 bit 영역
+  Buffer[11] := 32852;    // j = 5 , i = 11
+
+  // CH 06 word 영역
+  Buffer[12] := 16976;    // j = 6 , i = 12
+  Buffer[13] := 12337;
+  Buffer[14] := 11603;
+  Buffer[15] := 9008;
+
+  // CH 07 word 영역
+  Buffer[16] := 12337;    // j = 7 , i = 16
+  Buffer[17] := 8224;
+  Buffer[18] := 8224;
+  Buffer[19] := 8224;
+
+  // CH 08 word 영역
+  Buffer[20] := 19506;    // j = 8 , i = 20
+  Buffer[21] := 12848;
+  Buffer[22] := 12848;
+  Buffer[23] := 14128;
+
+  // CH 09 word 영역
+  Buffer[24] := 12336;    // j = 9 , i = 24
+  Buffer[25] := 12613;
+  Buffer[26] := 8224;
+  Buffer[27] := 8224;
+
+  // CH 10 word 영역
+  Buffer[28] := 21042;    // j = 10 , i = 28
+  Buffer[29] := 12848;
+  Buffer[30] := 12848;
+  Buffer[31] := 14128;
+
+  // CH 11 word 영역
+  Buffer[32] := 12336;    // j = 11 , i = 32
+  Buffer[33] := 12613;
+  Buffer[34] := 8224;
+  Buffer[35] := 8224;
+
+  // CH 12 word 영역
+  Buffer[36] := 17238;
+  Buffer[37] := 12337;
+  Buffer[38] := 8224;
+  Buffer[39] := 8224;
+
+  // CH 13 word 영역
+  Buffer[40] := 12337;
+  Buffer[41] := 8224;
+  Buffer[42] := 8224;
+  Buffer[43] := 8224;
 
   if Result = 0 then
   begin
     LogWriteStr(PLC_NO, '[PLC' + IntToStr(PLC_NO) + ']: '+ Get_COMM_FLAG(PLC_NO) + ' Memory Read Success');
 
     for i := Low(WordData) to High(WordData) do
-    begin //0000
-      if i > 9 then
-        WordData[i] := '0000'
+    begin
+      //0000
+      if (i in [10, 11, 44, 45]) then
+        WordData[i] := '0000' // 초기화
       else
         WordData[i] := HexaReverse(PLC_NO, IntToHex(Buffer[i], 4 )) ;
     end;
+
+//    tmp := Chr(StrToInt('$'+Copy(WordData[12], 1, 2)));
+//    tmp := tmp + Chr(StrToInt('$'+Copy(WordData[12], 3, 2)));
 
     LogWriteStr(PLC_NO, 'PLC' + IntToStr(PLC_NO) + ' Read1 Data [' + intToStr(Net_Size) + ']');
 
@@ -773,22 +849,48 @@ begin
                   '  Where SCC_NO = ''' + IntToStr(PLC_NO) + ''' ' +
                   '    and SCC_SR = ''R'' ' ;
 
-      tempSQL  := '';       tempSQL2 := '';      tempSQL3 := '';
+      tempSQL  := '';
+      tempSQL2 := '';
+      tempSQL3 := '';
 
-
-      i := 0 ; j := 1 ;
-      while j <= 3 do
+      i := 0 ;
+      j := 1 ;
+      while j <= 13 do
       begin
-        tempSQL  := tempSQL  + 'CH' + FormatFloat('00', j) + ' = ''' + WordData[i+0]+ WordData[i+1]+ WordData[i+2]+ WordData[i+3] + ''', '; // Update Bit Data
-        tempSQL2 := tempSQL2 + 'CH' + FormatFloat('00', j) + ', ';                                                                          // Insert Field Name
-        tempSQL3 := tempSQL3 + '''' + WordData[i+0]+ WordData[i+1]+ WordData[i+2]+ WordData[i+3]  + ''', ';                                 // Insert Value
 
-        inc(i, 4);
+        if (j = 3)then
+        begin
+          // Update SQL
+          tempSQL  := tempSQL  + 'CH' + FormatFloat('00', j) + ' = ''' + WordData[i+0] + WordData[i+1] + ''', ';
+
+          // Insert SQL FieldName
+          tempSQL2 := tempSQL2 + 'CH' + FormatFloat('00', j) + ', ';
+
+          // Insert SQL Value
+          tempSQL3 := tempSQL3 + '''' + WordData[i+0] + WordData[i+1] + ''', ';
+          inc(i, 2);
+        end
+        else if (j in [4, 5]) then
+        begin
+          inc(i, 1);
+        end
+        else
+        begin
+          // Update SQL
+          tempSQL  := tempSQL  + 'CH' + FormatFloat('00', j) + ' = ''' + WordData[i+0] + WordData[i+1] + WordData[i+2] + WordData[i+3] + ''', ';
+          // Insert SQL Field Name
+          tempSQL2 := tempSQL2 + 'CH' + FormatFloat('00', j) + ', ';
+          // Insert Value
+          tempSQL3 := tempSQL3 + '''' + WordData[i+0] + WordData[i+1] + WordData[i+2] + WordData[i+3]  + ''', ';
+
+          inc(i, 4);
+        end;
+
         Inc(j) ;
       end;
 
       strSQL_U := ' Update TT_SCC ' +
-                  '    Set ' + tempSQL + ' SCC_DT = SYSDATE ' +
+                  '    Set ' + tempSQL + ' SCC_DT = GETDATE() ' +
                   '  Where SCC_NO = ''' + IntToStr(PLC_NO) + ''' ' +
                   '    and SCC_SR = ''R'' ';
 
@@ -831,7 +933,7 @@ end;
 procedure TfrmControl.PLC_READ_Word2(PLC_NO:Integer);
 var
   Result, Net_Size, i, j: integer ;
-  tStr, strSQL_U, strSQL_I, strSQL, tempSQL, tempSQL2, tempSQL3 : String ;
+  strSQL_U, strSQL_I, strSQL, tempSQL, tempSQL2, tempSQL3 : String ;
   Net_Addr : WideString ;
   Buffer : Array [0..1] of integer ;
   WordData : Array [0..1] of String;
@@ -855,7 +957,8 @@ begin
     LogWriteStr(PLC_NO, '[PLC' + IntToStr(PLC_NO) + ']: '+ Get_COMM_FLAG(PLC_NO) + ' Memory Read Success');
 
     for i := Low(WordData) to High(WordData) do
-    begin //0000000000000000
+    begin
+      //0000000000000000
       WordData[i] := HexaReverse(PLC_NO, IntToHex(Buffer[i], 4 )) ;
     end;
 
@@ -866,8 +969,9 @@ begin
                   '  Where SCC_NO = ''' + IntToStr(PLC_NO) + ''' ' +
                   '    and SCC_SR = ''R'' ' ;
 
-      tempSQL  := '';       tempSQL2 := '';      tempSQL3 := '';
-
+      tempSQL  := '';
+      tempSQL2 := '';
+      tempSQL3 := '';
 
       i := 0 ; j := 4 ;
       while j <= 5 do
@@ -1134,6 +1238,11 @@ begin
       LogWriteStr(PLC_NO, ' Error : func Del_PLC_JOB:['+StrSQL + '], [' + E.Message + ']' ) ;
     end;
   end;
+end;
+
+procedure TfrmControl.Button2Click(Sender: TObject);
+begin
+  PLC_READ_WORD1(1);
 end;
 
 end.

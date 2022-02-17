@@ -336,6 +336,15 @@ object frmControl: TfrmControl
               AutoSize = False
               Caption = 'SC'
             end
+            object Button2: TButton
+              Left = 248
+              Top = 10
+              Width = 75
+              Height = 25
+              Caption = 'Button2'
+              TabOrder = 0
+              OnClick = Button2Click
+            end
           end
           object pnlPLC3: TPanel
             Left = 1
