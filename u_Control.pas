@@ -9,9 +9,11 @@ uses
 
 type
 
-  TCOMM_FLAG = ( CVW_D_W , // Write D Word
-                 CVR_D_W1, //  Read D Word(Bit)
-                 CVR_D_W2  //  Read D Word(Word)
+  TCOMM_FLAG = ( CVW_D_W1 , // Write D Word
+                 CVW_D_W2 , // Write D Word
+                 CVR_D_W1, // Read D Word(Word)
+                 CVR_D_W2, // Read D Word(bit)
+                 CVR_D_W3  // Read D Word(Word) RFID data area
                );
 
   TSC_ORDER = Record
@@ -29,6 +31,12 @@ type
     SCORD_D110,           // 기동지시 and Data Reset
     SCORD_ST,             // 지시타입
     SCORD_DT : String ;   // 지시 시간
+  end;
+
+  TPLC_ORDER = Record
+    D111   ,
+    ORD_ST ,
+    ORD_DT : String;
   end;
 
   TfrmControl = class(TForm)
@@ -106,17 +114,20 @@ type
 
     procedure PLC_READ_WORD1(PLC_NO:Integer); // CH01 ~ CH02 : SC D(Bit) 영역  (  Bit D0010.00 ~ D0011.15 : 2Word * 16Field = 32 Bit )
     procedure PLC_READ_WORD2(PLC_NO:Integer); // CH03 ~ CH05 : SC D(word)영역  ( Word D0012 ~ D0023 : 4Word * 3Field = 12 Word )
+    procedure PLC_READ_WORD3(PLC_NO:Integer); //
 
-    procedure PLC_WRITE_WORD(PLC_NO:Integer) ;   // D Word 영역 Write 처리
-
+    procedure PLC_WRITE_WORD1(PLC_NO:Integer) ;   // D Word 영역 Write 처리
+    procedure PLC_WRITE_WORD2(PLC_NO:Integer) ;
     function  DBConnection: Boolean;
     function  Get_COMM_FLAG(PLC_NO:Integer):String ;
     function  Get_COMM_FLAGNo(PLC_NO:Integer):integer ;
     function  HexaReverse(PLC_NO:integer;StrBuf:String) :String ;
 
     // SC 작업지시 관련
-    function Get_PLC_JOB(PLC_NO: integer; var SCORD: TSC_ORDER): Boolean ;
-    function Del_PLC_JOB(PLC_NO: integer; SCORD: TSC_ORDER): Boolean ;
+    function Get_PLC_JOB1(PLC_NO: integer; var SCORD: TSC_ORDER): Boolean ;
+    function Get_PLC_JOB2(PLC_NO: Integer; var PLC_ORD: TPLC_ORDER): Boolean ;
+    function Del_PLC_JOB1(PLC_NO: integer; SCORD: TSC_ORDER): Boolean ;
+    function Del_PLC_JOB2(PLC_NO: integer; PLC_ORD: TPLC_ORDER): Boolean ;
 
     function fnDBConChk: Boolean;
     procedure CloseChkMsg(Sender: TObject);
@@ -381,6 +392,7 @@ begin
   case COMM_FLAG[PLC_NO] of
     CVR_D_W1 : PLC_READ_WORD1(PLC_NO) ; //  Read D Word(Word)
     CVR_D_W2 : PLC_READ_WORD2(PLC_NO) ; //  Read D Word(Bit)
+    CVR_D_W3 : PLC_READ_WORD3(PLC_NO) ; //  Read D Word(RFID data area);
   end;
 end;
 
@@ -390,7 +402,8 @@ end;
 procedure TfrmControl.PLC_WRITE_PROCESS(PLC_NO:integer);
 begin
   case COMM_FLAG[PLC_NO] of
-    CVW_D_W : PLC_WRITE_WORD(PLC_NO) ; // Write D Word
+    CVW_D_W1 : PLC_WRITE_WORD1(PLC_NO) ; // Write D Word
+    CVW_D_W2 : PLC_WRITE_WORD2(PLC_NO) ; // Write D Word
   end;
 end;
 
@@ -424,7 +437,7 @@ begin
         PLC_READ_PROCESS(PLC_NO) ;
       end;
 
-      CVW_D_W :
+      CVW_D_W1, CVW_D_W2 :
       begin // Write D Word
         LogWriteStr(PLC_NO, Get_COMM_FLAG(PLC_NO) + 'WRITE PROCESS Start');
         PLC_WRITE_PROCESS(PLC_NO);
@@ -610,8 +623,10 @@ begin
 
   case COMM_FLAG[i] of
     CVR_D_W1  : COMM_FLAG[i] := CVR_D_W2;
-    CVR_D_W2  : COMM_FLAG[i] := CVW_D_W;
-    CVW_D_W   : COMM_FLAG[i] := CVR_D_W1;
+    CVR_D_W2  : COMM_FLAG[i] := CVR_D_W3;
+    CVR_D_W3  : COMM_FLAG[i] := CVW_D_W1;
+    CVW_D_W1  : COMM_FLAG[i] := CVW_D_W2;
+    CVW_D_W2  : COMM_FLAG[i] := CVR_D_W1;
   end;
   LogWriteStr(i, 'Time Over ReStart Communication');
 end;
@@ -623,8 +638,10 @@ procedure TfrmControl.Set_COMM_FLAG(PLC_NO:integer);
 begin
   case COMM_FLAG[PLC_NO] of
     CVR_D_W1  : COMM_FLAG[PLC_NO] := CVR_D_W2;
-    CVR_D_W2  : COMM_FLAG[PLC_NO] := CVW_D_W;
-    CVW_D_W   : COMM_FLAG[PLC_NO] := CVR_D_W1;
+    CVR_D_W2  : COMM_FLAG[PLC_NO] := CVR_D_W3;
+    CVR_D_W3  : COMM_FLAG[PLC_NO] := CVW_D_W1;
+    CVW_D_W1  : COMM_FLAG[PLC_NO] := CVW_D_W2;
+    CVW_D_W2  : COMM_FLAG[PLC_NO] := CVR_D_W1;
   end;
 end;
 
@@ -688,7 +705,9 @@ begin
   case COMM_FLAG[PLC_NO] of
     CVR_D_W1 : strResult := '[RECV] PLC Word(Word) Area ' ;  // 상태정보 읽기(Word)
     CVR_D_W2 : strResult := '[RECV] PLC Word(Bit)  Area ' ;  // 상태정보 읽기(Bit)
-    CVW_D_W  : strResult := '[SEND] PLC Word(Word) Area ' ;  // SC작업지시
+    CVR_D_W3 : strResult := '[RECV] PLC_Word(Word) RFID Area ' ;
+    CVW_D_W1 : strResult := '[SEND] PLC Word(Word) Area ' ;  // SC작업지시
+    CVW_D_W2 : strResult := '[SEND] PLC Word(Word) Area ' ;  // 커튼 on/off
   end;
   Result := strResult ;
 end;
@@ -704,7 +723,9 @@ begin
   case COMM_FLAG[PLC_NO] of
     CVR_D_W1 : iResult := 1 ;  // 상태정보 읽기(Word)
     CVR_D_W2 : iResult := 2 ;  // 상태정보 읽기(Bit)
-    CVW_D_W  : iResult := 3 ;  // SC작업지시
+    CVR_D_W3 : iResult := 3 ;
+    CVW_D_W1 : iResult := 4 ;  // SC작업지시
+    CVW_D_W2 : iResult := 5 ;  // 커튼 On/Off
   end;
   Result := iResult ;
 end;
@@ -714,10 +735,10 @@ end;
 //==============================================================================
 function TfrmControl.HexaReverse(PLC_NO:integer; StrBuf:String): String;
 Var
-  aStrConvert, tStr, Str_Low : string;
+  tStr, Str_Low : string;
 begin
   // 데이터 변환
-  if COMM_FLAG[PLC_NO] = CVR_D_W1 then // Read  D Word "Word" Type Data
+  if COMM_FLAG[PLC_NO] in [CVR_D_W1, CVR_D_W3] then // Read  D Word "Word" Type Data
   begin
     tStr   := Copy(StrBuf, 1, 4);
     Result := tStr ;
@@ -738,9 +759,8 @@ var
   Result, Net_Size, i, j: integer ;
   strSQL_U, strSQL_I, strSQL, tempSQL, tempSQL2, tempSQL3 : String ;
   Net_Addr : WideString ;
-  Buffer : Array [0..45] of integer ;
-  WordData : Array [0..45] of String;
-  tmp : string;
+  Buffer : Array [0..11] of integer ;
+  WordData : Array [0..11] of String;
 begin
   FillChar(Buffer, sizeof(Buffer), 0 );
 
@@ -748,83 +768,14 @@ begin
   // CH01 ~ CH03 : SC D(Word)영역
   //++++++++++++++++++++++++++++++
   Net_Addr := 'D0200' ;
-  Net_Size := 48 ;
+  Net_Size := 12 ;
 
   //++++++++++++
   // Data Read
   //++++++++++++
-// 이거사용  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
+  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
 //Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).ReadDeviceBlock2(Net_Addr, Net_Size, Buffer[0] ) ;
 
-  // CH 01 word 영역
-  Buffer[0] := 1;         // j = 1 , i = 0
-  Buffer[1] := 1;
-  Buffer[2] := 0;
-  Buffer[3] := 0;
-
-  // CH 02 word 영역
-  Buffer[4] := 0;         // j = 2 , i = 4
-  Buffer[5] := 0;
-  Buffer[6] := 0;
-  Buffer[7] := 0;
-
-  // CH 03 word 영역
-  Buffer[8] := 0;         // j = 3 , i = 8
-  Buffer[9] := 0;
-
-  // CH 04 bit 영역
-  Buffer[10] := 50048;    // j = 4 , i = 10
-
-  // CH 05 bit 영역
-  Buffer[11] := 32852;    // j = 5 , i = 11
-
-  // CH 06 word 영역
-  Buffer[12] := 16976;    // j = 6 , i = 12
-  Buffer[13] := 12337;
-  Buffer[14] := 11603;
-  Buffer[15] := 9008;
-
-  // CH 07 word 영역
-  Buffer[16] := 12337;    // j = 7 , i = 16
-  Buffer[17] := 8224;
-  Buffer[18] := 8224;
-  Buffer[19] := 8224;
-
-  // CH 08 word 영역
-  Buffer[20] := 19506;    // j = 8 , i = 20
-  Buffer[21] := 12848;
-  Buffer[22] := 12848;
-  Buffer[23] := 14128;
-
-  // CH 09 word 영역
-  Buffer[24] := 12336;    // j = 9 , i = 24
-  Buffer[25] := 12613;
-  Buffer[26] := 8224;
-  Buffer[27] := 8224;
-
-  // CH 10 word 영역
-  Buffer[28] := 21042;    // j = 10 , i = 28
-  Buffer[29] := 12848;
-  Buffer[30] := 12848;
-  Buffer[31] := 14128;
-
-  // CH 11 word 영역
-  Buffer[32] := 12336;    // j = 11 , i = 32
-  Buffer[33] := 12613;
-  Buffer[34] := 8224;
-  Buffer[35] := 8224;
-
-  // CH 12 word 영역
-  Buffer[36] := 17238;
-  Buffer[37] := 12337;
-  Buffer[38] := 8224;
-  Buffer[39] := 8224;
-
-  // CH 13 word 영역
-  Buffer[40] := 12337;
-  Buffer[41] := 8224;
-  Buffer[42] := 8224;
-  Buffer[43] := 8224;
 
   if Result = 0 then
   begin
@@ -855,37 +806,13 @@ begin
 
       i := 0 ;
       j := 1 ;
-      while j <= 13 do
+      while j <= 3 do
       begin
+        tempSQL  := tempSQL  + 'CH' + FormatFloat('00', j) + ' = ''' + WordData[i+0]+ WordData[i+1]+ WordData[i+2]+ WordData[i+3] + ''', '; // Update Bit Data
+        tempSQL2 := tempSQL2 + 'CH' + FormatFloat('00', j) + ', ';                                                                          // Insert Field Name
+        tempSQL3 := tempSQL3 + '''' + WordData[i+0]+ WordData[i+1]+ WordData[i+2]+ WordData[i+3]  + ''', ';                                 // Insert Value
 
-        if (j = 3)then
-        begin
-          // Update SQL
-          tempSQL  := tempSQL  + 'CH' + FormatFloat('00', j) + ' = ''' + WordData[i+0] + WordData[i+1] + ''', ';
-
-          // Insert SQL FieldName
-          tempSQL2 := tempSQL2 + 'CH' + FormatFloat('00', j) + ', ';
-
-          // Insert SQL Value
-          tempSQL3 := tempSQL3 + '''' + WordData[i+0] + WordData[i+1] + ''', ';
-          inc(i, 2);
-        end
-        else if (j in [4, 5]) then
-        begin
-          inc(i, 1);
-        end
-        else
-        begin
-          // Update SQL
-          tempSQL  := tempSQL  + 'CH' + FormatFloat('00', j) + ' = ''' + WordData[i+0] + WordData[i+1] + WordData[i+2] + WordData[i+3] + ''', ';
-          // Insert SQL Field Name
-          tempSQL2 := tempSQL2 + 'CH' + FormatFloat('00', j) + ', ';
-          // Insert Value
-          tempSQL3 := tempSQL3 + '''' + WordData[i+0] + WordData[i+1] + WordData[i+2] + WordData[i+3]  + ''', ';
-
-          inc(i, 4);
-        end;
-
+        inc(i, 4);
         Inc(j) ;
       end;
 
@@ -895,7 +822,7 @@ begin
                   '    and SCC_SR = ''R'' ';
 
       strSQL_I := ' Insert Into TT_SCC ( SCC_NO, ' +  tempSQL2 + ' SCC_DT, SCC_SR )' +
-                  '   VALUES ( ''' + IntToStr(PLC_NO) + ''', ' + tempSQL3 + ' SYSDATE, ''R'' ) ' ;
+                  '   VALUES ( ''' + IntToStr(PLC_NO) + ''', ' + tempSQL3 + ' GETDATE(), ''R'' ) ' ;
 
       with TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))) do
       begin
@@ -935,8 +862,8 @@ var
   Result, Net_Size, i, j: integer ;
   strSQL_U, strSQL_I, strSQL, tempSQL, tempSQL2, tempSQL3 : String ;
   Net_Addr : WideString ;
-  Buffer : Array [0..1] of integer ;
-  WordData : Array [0..1] of String;
+  Buffer : Array [0..2] of integer ;
+  WordData : Array [0..2] of String;
 begin
   FillChar(Buffer, sizeof(Buffer), 0 );
 
@@ -944,7 +871,7 @@ begin
   // CH04 ~ CH05 : SC D(Bit)영역
   //++++++++++++++++++++++++++++++
   Net_Addr := 'D0210' ;
-  Net_Size := 2 ;
+  Net_Size := 3 ;
 
   //++++++++++++
   // Data Read
@@ -974,7 +901,7 @@ begin
       tempSQL3 := '';
 
       i := 0 ; j := 4 ;
-      while j <= 5 do
+      while j <= 6 do
       begin
         tempSQL  := tempSQL  + 'CH' + FormatFloat('00', j) + ' = ''' + WordData[i] + ''', '; // Update Bit Data
         tempSQL2 := tempSQL2 + 'CH' + FormatFloat('00', j) + ', ';                           // Insert Field Name
@@ -985,12 +912,12 @@ begin
       end;
 
       strSQL_U := ' Update TT_SCC ' +
-                  '    Set ' + tempSQL + ' SCC_DT = SYSDATE ' +
+                  '    Set ' + tempSQL + ' SCC_DT = GETDATE() ' +
                   '  Where SCC_NO = ''' + IntToStr(PLC_NO) + ''' ' +
                   '    and SCC_SR = ''R'' ';
 
       strSQL_I := ' Insert Into TT_SCC ( SCC_NO, ' +  tempSQL2 + ' SCC_DT, SCC_SR )' +
-                  '   VALUES ( ''' + IntToStr(PLC_NO) + ''', ' + tempSQL3 + ' SYSDATE, ''R'' ) ' ;
+                  '   VALUES ( ''' + IntToStr(PLC_NO) + ''', ' + tempSQL3 + ' GETDATE(), ''R'' ) ' ;
 
       with TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))) do
       begin
@@ -1025,16 +952,413 @@ begin
 end;
 
 //==============================================================================
+// PLC_READ_Word3 -> Word RFID Data
+//==============================================================================
+procedure TfrmControl.PLC_READ_WORD3(PLC_NO: Integer);
+var
+  Result, Net_Size, i, j: integer ;
+  strSQL_U, strSQL_I, strSQL, tempSQL, tempSQL2, tempSQL3 : String ;
+  Net_Addr : WideString ;
+  Buffer : Array [0..191] of integer ;
+  WordData : Array [0..191] of String;
+begin
+  FillChar(Buffer, sizeof(Buffer), 0 );
+
+  //++++++++++++++++++++++++++++++
+  // CH04 ~ CH05 : SC D(Bit)영역
+  //++++++++++++++++++++++++++++++
+  Net_Addr := 'D1200' ;
+  Net_Size := 192 ;
+
+  //++++++++++++
+  // Data Read
+  //++++++++++++
+//  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
+//Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).ReadDeviceBlock2(Net_Addr, Net_Size, Buffer[0] ) ;
+
+
+ // st1 IN
+  // CH 06 word 영역
+  Buffer[0] := 16976;    // j = 6 , i = 12
+  Buffer[1] := 12337;
+  Buffer[2] := 11603;
+  Buffer[3] := 9008;
+
+  // CH 07 word 영역
+  Buffer[4] := 12337;    // j = 7 , i = 16
+  Buffer[5] := 8224;
+  Buffer[6] := 8224;
+  Buffer[7] := 8224;
+
+  // CH 08 word 영역
+  Buffer[8] := 19506;    // j = 8 , i = 20
+  Buffer[9] := 12848;
+  Buffer[10] := 12848;
+  Buffer[11] := 14128;
+
+  // CH 09 word 영역
+  Buffer[12] := 12336;    // j = 9 , i = 24
+  Buffer[13] := 12613;
+  Buffer[14] := 8224;
+  Buffer[15] := 8224;
+
+  // CH 10 word 영역
+  Buffer[16] := 21042;    // j = 10 , i = 28
+  Buffer[17] := 12848;
+  Buffer[18] := 12848;
+  Buffer[19] := 14128;
+
+  // CH 11 word 영역
+  Buffer[20] := 12336;    // j = 11 , i = 32
+  Buffer[21] := 12613;
+  Buffer[22] := 8224;
+  Buffer[23] := 8224;
+
+  // CH 12 word 영역
+  Buffer[24] := 17238;
+  Buffer[25] := 12337;
+  Buffer[26] := 8224;
+  Buffer[27] := 8224;
+
+  // CH 13 word 영역
+  Buffer[28] := 12337;
+  Buffer[29] := 8224;
+  Buffer[30] := 8224;
+  Buffer[31] := 8224;
+
+  // st 1 OUT
+  // CH 14 word 영역
+  Buffer[32] := 16976;    // j = 6 , i = 12
+  Buffer[33] := 12337;
+  Buffer[34] := 11603;
+  Buffer[35] := 9008;
+
+  // CH 15 word 영역
+  Buffer[36] := 12337;    // j = 7 , i = 16
+  Buffer[37] := 8224;
+  Buffer[38] := 8224;
+  Buffer[39] := 8224;
+
+  // CH 16 word 영역
+  Buffer[40] := 19506;    // j = 8 , i = 20
+  Buffer[41] := 12848;
+  Buffer[42] := 12848;
+  Buffer[43] := 14128;
+
+  // CH 17 word 영역
+  Buffer[44] := 12336;    // j = 9 , i = 24
+  Buffer[45] := 12613;
+  Buffer[46] := 8224;
+  Buffer[47] := 8224;
+
+  // CH 18 word 영역
+  Buffer[48] := 21042;    // j = 10 , i = 28
+  Buffer[49] := 12848;
+  Buffer[50] := 12848;
+  Buffer[51] := 14128;
+
+  // CH 19 word 영역
+  Buffer[52] := 12336;    // j = 11 , i = 32
+  Buffer[53] := 12613;
+  Buffer[54] := 8224;
+  Buffer[55] := 8224;
+
+  // CH 20 word 영역
+  Buffer[56] := 17238;
+  Buffer[57] := 12337;
+  Buffer[58] := 8224;
+  Buffer[59] := 8224;
+
+  // CH 21 word 영역
+  Buffer[60] := 12337;
+  Buffer[61] := 8224;
+  Buffer[62] := 8224;
+  Buffer[63] := 8224;
+
+  //st 2 IN
+  // CH 22 word 영역
+  Buffer[64] := 16976;    // j = 6 , i = 12
+  Buffer[65] := 12337;
+  Buffer[66] := 11603;
+  Buffer[67] := 9008;
+
+  // CH 23 word 영역
+  Buffer[68] := 12337;    // j = 7 , i = 16
+  Buffer[69] := 8224;
+  Buffer[70] := 8224;
+  Buffer[71] := 8224;
+
+  // CH 24 word 영역
+  Buffer[72] := 19506;    // j = 8 , i = 20
+  Buffer[73] := 12848;
+  Buffer[74] := 12848;
+  Buffer[75] := 14128;
+
+  // CH 25 word 영역
+  Buffer[76] := 12336;    // j = 9 , i = 24
+  Buffer[77] := 12613;
+  Buffer[78] := 8224;
+  Buffer[79] := 8224;
+
+  // CH 26 word 영역
+  Buffer[80] := 21042;    // j = 10 , i = 28
+  Buffer[81] := 12848;
+  Buffer[82] := 12848;
+  Buffer[83] := 14128;
+
+  // CH 27 word 영역
+  Buffer[84] := 12336;    // j = 11 , i = 32
+  Buffer[85] := 12613;
+  Buffer[86] := 8224;
+  Buffer[87] := 8224;
+
+  // CH 28 word 영역
+  Buffer[88] := 17238;
+  Buffer[89] := 12337;
+  Buffer[90] := 8224;
+  Buffer[91] := 8224;
+
+  // CH 29 word 영역
+  Buffer[92] := 12337;
+  Buffer[93] := 8224;
+  Buffer[94] := 8224;
+  Buffer[95] := 8224;
+
+  // ST 2 OUT
+  // CH 30 word 영역
+  Buffer[96] := 16976;    // j = 6 , i = 12
+  Buffer[97] := 12337;
+  Buffer[98] := 11603;
+  Buffer[99] := 9008;
+
+  // CH 31 word 영역
+  Buffer[100] := 12337;    // j = 7 , i = 16
+  Buffer[101] := 8224;
+  Buffer[102] := 8224;
+  Buffer[103] := 8224;
+
+  // CH 32 word 영역
+  Buffer[104] := 19506;    // j = 8 , i = 20
+  Buffer[105] := 12848;
+  Buffer[106] := 12848;
+  Buffer[107] := 14128;
+
+  // CH 33 word 영역
+  Buffer[108] := 12336;    // j = 9 , i = 24
+  Buffer[109] := 12613;
+  Buffer[110] := 8224;
+  Buffer[111] := 8224;
+
+  // CH 34 word 영역
+  Buffer[112] := 21042;    // j = 10 , i = 28
+  Buffer[113] := 12848;
+  Buffer[114] := 12848;
+  Buffer[115] := 14128;
+
+  // CH 35 word 영역
+  Buffer[116] := 12336;    // j = 11 , i = 32
+  Buffer[117] := 12613;
+  Buffer[118] := 8224;
+  Buffer[119] := 8224;
+
+  // CH 36 word 영역
+  Buffer[120] := 17238;
+  Buffer[121] := 12337;
+  Buffer[122] := 8224;
+  Buffer[123] := 8224;
+
+  // CH 37 word 영역
+  Buffer[124] := 12337;
+  Buffer[125] := 8224;
+  Buffer[126] := 8224;
+  Buffer[127] := 8224;
+
+  //st 3 IN
+  // CH 38 word 영역
+  Buffer[128] := 16976;    // j = 6 , i = 12
+  Buffer[129] := 12337;
+  Buffer[130] := 11603;
+  Buffer[131] := 9008;
+
+  // CH 39 word 영역
+  Buffer[132] := 12337;    // j = 7 , i = 16
+  Buffer[133] := 8224;
+  Buffer[134] := 8224;
+  Buffer[135] := 8224;
+
+  // CH 40 word 영역
+  Buffer[136] := 19506;    // j = 8 , i = 20
+  Buffer[137] := 12848;
+  Buffer[138] := 12848;
+  Buffer[139] := 14128;
+
+  // CH 41 word 영역
+  Buffer[140] := 12336;    // j = 9 , i = 24
+  Buffer[141] := 12613;
+  Buffer[142] := 8224;
+  Buffer[143] := 8224;
+
+  // CH 42 word 영역
+  Buffer[144] := 21042;    // j = 10 , i = 28
+  Buffer[145] := 12848;
+  Buffer[146] := 12848;
+  Buffer[147] := 14128;
+
+  // CH 43 word 영역
+  Buffer[148] := 12336;    // j = 11 , i = 32
+  Buffer[149] := 12613;
+  Buffer[150] := 8224;
+  Buffer[151] := 8224;
+
+  // CH 44 word 영역
+  Buffer[152] := 17238;
+  Buffer[153] := 12337;
+  Buffer[154] := 8224;
+  Buffer[155] := 8224;
+
+  // CH 45 word 영역
+  Buffer[156] := 12337;
+  Buffer[157] := 8224;
+  Buffer[158] := 8224;
+  Buffer[159] := 8224;
+
+  // ST 2 OUT
+  // CH 46 word 영역
+  Buffer[160] := 16976;    // j = 6 , i = 12
+  Buffer[161] := 12337;
+  Buffer[162] := 11603;
+  Buffer[163] := 9008;
+
+  // CH 47 word 영역
+  Buffer[164] := 12337;    // j = 7 , i = 16
+  Buffer[165] := 8224;
+  Buffer[166] := 8224;
+  Buffer[167] := 8224;
+
+  // CH 48 word 영역
+  Buffer[168] := 19506;    // j = 8 , i = 20
+  Buffer[169] := 12848;
+  Buffer[170] := 12848;
+  Buffer[171] := 14128;
+
+  // CH 49 word 영역
+  Buffer[172] := 12336;    // j = 9 , i = 24
+  Buffer[173] := 12613;
+  Buffer[174] := 8224;
+  Buffer[175] := 8224;
+
+  // CH 50 word 영역
+  Buffer[176] := 21042;    // j = 10 , i = 28
+  Buffer[177] := 12848;
+  Buffer[178] := 12848;
+  Buffer[179] := 14128;
+
+  // CH 51 word 영역
+  Buffer[180] := 12336;    // j = 11 , i = 32
+  Buffer[181] := 12613;
+  Buffer[182] := 8224;
+  Buffer[183] := 8224;
+
+  // CH 52 word 영역
+  Buffer[184] := 17238;
+  Buffer[185] := 12337;
+  Buffer[186] := 8224;
+  Buffer[187] := 8224;
+
+  // CH 53 word 영역
+  Buffer[188] := 12337;
+  Buffer[189] := 8224;
+  Buffer[190] := 8224;
+  Buffer[191] := 8224;
+
+
+  if Result = 0 then
+  begin
+    LogWriteStr(PLC_NO, '[PLC' + IntToStr(PLC_NO) + ']: '+ Get_COMM_FLAG(PLC_NO) + ' Memory Read Success');
+
+    for i := Low(WordData) to High(WordData) do
+    begin
+      //0000
+      WordData[i] := HexaReverse(PLC_NO, IntToHex(Buffer[i], 4 )) ;
+    end;
+
+    LogWriteStr(PLC_NO, 'PLC' + IntToStr(PLC_NO) + ' Read1 Data [' + intToStr(Net_Size) + ']');
+
+    try
+      strSQL   := ' Select * from TT_SCC ' +
+                  '  Where SCC_NO = ''' + IntToStr(PLC_NO) + ''' ' +
+                  '    and SCC_SR = ''R'' ' ;
+
+      tempSQL  := '';
+      tempSQL2 := '';
+      tempSQL3 := '';
+
+      i := 0 ; j := 6 ;
+      while j <= 53 do
+      begin
+        // Update SQL
+        tempSQL  := tempSQL  + 'CH' + FormatFloat('00', j) + ' = ''' + WordData[i+0] + WordData[i+1] + WordData[i+2] + WordData[i+3] + ''', ';
+        // Insert SQL Field Name
+        tempSQL2 := tempSQL2 + 'CH' + FormatFloat('00', j) + ', ';
+        // Insert Value
+        tempSQL3 := tempSQL3 + '''' + WordData[i+0] + WordData[i+1] + WordData[i+2] + WordData[i+3]  + ''', ';
+        inc(i, 4);
+        Inc(j) ;
+      end;
+
+      strSQL_U := ' Update TT_SCC ' +
+                  '    Set ' + tempSQL + ' SCC_DT = GETDATE() ' +
+                  '  Where SCC_NO = ''' + IntToStr(PLC_NO) + ''' ' +
+                  '    and SCC_SR = ''R'' ';
+
+      strSQL_I := ' Insert Into TT_SCC ( SCC_NO, ' +  tempSQL2 + ' SCC_DT, SCC_SR )' +
+                  '   VALUES ( ''' + IntToStr(PLC_NO) + ''', ' + tempSQL3 + ' GETDATE(), ''R'' ) ' ;
+
+      with TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))) do
+      begin
+        Close ;
+        SQL.Clear;
+        SQL.Text := strSQL ;
+        Open;
+        if RecordCount > 0 then
+             strSQL := strSQL_U
+        else strSQL := strSQL_I;
+
+        Close;
+      end;
+
+      with TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))) do
+      begin
+        Close;
+        SQL.Clear;
+        SQL.Text := strSQL;
+        ExecSQL ;
+      end;
+    except
+      if TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active then
+         TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active := False;
+      if TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))).Active then
+         TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))).Active := False;
+    end;
+  end else
+  begin
+    LogWriteStr(PLC_NO, Get_COMM_FLAG(PLC_NO) + 'PLC' + IntToStr(PLC_NO) + ' Memory Read Fail , ErrorCode [' + IntToStr(Result) + '] ');
+    ReConnect(PLC_NO);
+  end;
+end;
+
+//==============================================================================
 // PLC_WRITE_WORD : PLC 에 CV 지시 D-Word 정보를 전송한다.
 //==============================================================================
-procedure TfrmControl.PLC_WRITE_WORD(PLC_NO:Integer);
+procedure TfrmControl.PLC_WRITE_WORD1(PLC_NO:Integer);
 var
-  Result, Net_Size, Lugg_Size : integer ;
-  strSQL, Lugg_Addr : String ;
+  Result, Net_Size : integer ;
+  strSQL : String ;
   Net_Addr : WideString ;
   Buffer       : Array [0..9] of Word ;
   Buffer_Move  : Word ;
   Buffer_Clear : Array [0..10] of Word ;
+  Buffer_Door  : Word;
   SCORD  : Array [START_PLCNO..End_PLCNO] of TSC_ORDER ;
 begin
   try
@@ -1046,12 +1370,12 @@ begin
     SCORD[PLC_NO].SCORD_ST   :=''; SCORD[PLC_NO].SCORD_DT   :='';
 
 
-    while Get_PLC_JOB(PLC_NO, SCORD[PLC_NO]) do
+    while Get_PLC_JOB1(PLC_NO, SCORD[PLC_NO]) do
     begin
       //+++++++++++++++++++++++++++++++
       // 작업지시 D100 ~ D109
       //+++++++++++++++++++++++++++++++
-      if ( SCORD[PLC_NO].SCORD_ST='0' ) then
+      if ( SCORD[PLC_NO].SCORD_ST = '0' ) then
       begin
 //        Buffer[00] := StrToInt('$' + SCORD[PLC_NO].SCORD_D100 );  // 적재 열
 //        Buffer[01] := StrToInt('$' + SCORD[PLC_NO].SCORD_D101 );  // 적재 연
@@ -1084,7 +1408,7 @@ begin
       //+++++++++++++++++++++++++++++++
       // 기동지시 On D110
       //+++++++++++++++++++++++++++++++
-      if (SCORD[PLC_NO].SCORD_ST='1') then
+      if (SCORD[PLC_NO].SCORD_ST = '1') then
       begin
         Buffer_Move := StrToInt('$' + SCORD[PLC_NO].SCORD_D110 ); // '0001'
 
@@ -1096,7 +1420,7 @@ begin
       //+++++++++++++++++++++++++++++++
       // 기동지시 Off or 데이터초기화 (D100 ~ D110)
       //+++++++++++++++++++++++++++++++
-      if ( SCORD[PLC_NO].SCORD_ST='2' ) then
+      if ( SCORD[PLC_NO].SCORD_ST = '2' ) then
       begin
         Buffer_Clear[00] := StrToInt('$' + SCORD[PLC_NO].SCORD_D100 );  // '0000'
         Buffer_Clear[01] := StrToInt('$' + SCORD[PLC_NO].SCORD_D101 );  // '0000'
@@ -1116,13 +1440,12 @@ begin
         Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Clear[0] ) ;
       end;
 
-
       if Result = 0 then
       begin
         LogWriteStr(PLC_NO, Get_COMM_FLAG(PLC_NO) + 'PLC' + IntToStr(PLC_NO) + ' Memory Write Success');
         LogWriteStr(PLC_NO, 'Write Data [' + intToStr(Net_Size) + ']');
 
-        if Del_PLC_JOB(PLC_NO, SCORD[PLC_NO]) then
+        if Del_PLC_JOB1(PLC_NO, SCORD[PLC_NO]) then
              LogWriteStr(PLC_NO, ' SC Order Delete Successfull : func Del_PLC_JOB:[' +
                                    SCORD[PLC_NO].SCORD_NO   + ',' +
                                    SCORD[PLC_NO].SCORD_D100 + ',' + SCORD[PLC_NO].SCORD_D101 + ',' + SCORD[PLC_NO].SCORD_D102 + ',' +
@@ -1150,9 +1473,62 @@ begin
 end;
 
 //==============================================================================
+// PLC_WRITE_WORD : PLC 에 CV 지시 D-Word 정보를 전송한다.
+//==============================================================================
+procedure TfrmControl.PLC_WRITE_WORD2(PLC_NO:Integer);
+var
+  Result, Net_Size : integer ;
+  strSQL : String ;
+  Net_Addr : WideString ;
+  Buffer_Door  : Word;
+  PLC_ORD  : TPLC_ORDER ;
+begin
+  try
+    PLC_ORD.D111 := '';
+    PLC_ORD.ORD_ST := '';
+    PLC_ORD.ORD_DT := '';
+
+    while Get_PLC_JOB2(PLC_NO, PLC_ORD) do
+    begin
+
+      //+++++++++++++++++++++++++++++++
+      // 라이트커튼on/off(D111)
+      //+++++++++++++++++++++++++++++++
+      Buffer_Door := StrToInt('$' + PLC_ORD.D111);
+
+      Net_Addr := 'D111' ;
+      Net_Size := 1 ;
+
+      Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Door ) ;
+
+      if Result = 0 then
+      begin
+        LogWriteStr(PLC_NO, Get_COMM_FLAG(PLC_NO) + 'PLC' + IntToStr(PLC_NO) + ' Memory Write Success');
+        LogWriteStr(PLC_NO, 'Write Data [' + intToStr(Net_Size) + ']');
+
+        if Del_PLC_JOB2(PLC_NO, PLC_ORD) then
+             LogWriteStr(PLC_NO, ' PLC Order Delete Successfull : func Del_PLC_JOB2:[' +
+                                   PLC_ORD.D111   + ']')
+
+        else LogWriteStr(PLC_NO, ' PLC Order Delete Failed : func Del_PLC_JOB2:[' +
+                                   PLC_ORD.D111   + ']')
+      end else
+      begin
+        LogWriteStr(PLC_NO, Get_COMM_FLAG(PLC_NO) + 'PLC' + IntToStr(PLC_NO) + ' Memory Write Fail , ErrorCode [' + IntToStr(Result) + '] ');
+      end;
+    end;
+  except
+    on E:Exception do
+    begin
+      LogWriteStr(PLC_NO, ' Error : proc PLC_WRITE_WORD: PLC['+ IntToStr(PLC_NO)+ StrSQL + '], [' + E.Message + ']' ) ;
+    end;
+  end;
+end;
+
+//==============================================================================
 // Get_PLC_JOB
 //==============================================================================
-function TfrmControl.Get_PLC_JOB(PLC_NO:integer; var SCORD : TSC_ORDER): Boolean ;
+function TfrmControl.Get_PLC_JOB1(PLC_NO:integer; var SCORD : TSC_ORDER): Boolean ;
 var
   StrSQL : String ;
 begin
@@ -1198,15 +1574,56 @@ begin
     begin
       if TAdoQuery(Self.FindComponent('qryInfo' + IntToStr(PLC_NO))).Active then
          TAdoQuery(Self.FindComponent('qryInfo' + IntToStr(PLC_NO))).Close;
-      LogWriteStr(PLC_NO, ' Error : func Get_PLC_JOB:['+ StrSQL + '], [' + E.Message + ']') ;
+      LogWriteStr(PLC_NO, ' Error : func Get_PLC_JOB1:['+ StrSQL + '], [' + E.Message + ']') ;
     end;
   end;
 end;
 
 //==============================================================================
-// Del_PLC_JOB
+// Get_PLC_JOB2
 //==============================================================================
-function TfrmControl.Del_PLC_JOB(PLC_NO:integer; SCORD : TSC_ORDER):Boolean ;
+function TfrmControl.Get_PLC_JOB2(PLC_NO: Integer; var PLC_ORD: TPLC_ORDER): Boolean ;
+var
+  StrSQL : String ;
+begin
+  Result := False ;
+  try
+    // 작업지시할 데이터를 검색
+    StrSQL := ' SELECT D111, ' +
+              '        ORD_STATUS ' +
+              '   FROM TT_PLCORD ' +
+              '  ORDER BY ORD_DT ' ;
+
+    with TAdoQuery(Self.FindComponent('qryInfo' + IntToStr(PLC_NO))) do
+    begin
+      Close ;
+      SQL.Text := StrSQL ;
+      Open ;
+      First ;
+      if not (Bof and Eof ) then
+      begin
+        PLC_ORD.D111 := FieldByName('D111').AsString;
+        PLC_ORD.ORD_ST := FieldByName('ORD_STATUS').AsString;
+        Result := True ;
+      end;
+      Close ;
+    end;
+  except
+    on E:Exception do
+    begin
+      if TAdoQuery(Self.FindComponent('qryInfo' + IntToStr(PLC_NO))).Active then
+         TAdoQuery(Self.FindComponent('qryInfo' + IntToStr(PLC_NO))).Close;
+      LogWriteStr(PLC_NO, ' Error : func Get_PLC_JOB2:['+ StrSQL + '], [' + E.Message + ']') ;
+    end;
+  end;
+end;
+
+
+
+//==============================================================================
+// Del_PLC_JOB1
+//==============================================================================
+function TfrmControl.Del_PLC_JOB1(PLC_NO:integer; SCORD : TSC_ORDER):Boolean ;
 var
   ExecNo : Integer ;
   StrSQL : String ;
@@ -1240,9 +1657,45 @@ begin
   end;
 end;
 
+//==============================================================================
+// Del_PLC_JOB2
+//==============================================================================
+function TfrmControl.Del_PLC_JOB2(PLC_NO: integer; PLC_ORD: TPLC_ORDER): Boolean;
+var
+  ExecNo : Integer ;
+  StrSQL : String ;
+begin
+  Result := False;
+  try
+
+    StrSQL := ' Delete From TT_PLCORD ' +
+              '  Where PLC_NO = ''' + IntToStr(PLC_NO)      + ''' ' +  // SC호기
+              '    and ORD_STATUS = ''' + PLC_ORD.ORD_ST + ''' ' ;  // 지시타입
+
+    with TAdoQuery(Self.FindComponent('qryInfo' + IntToStr(PLC_NO))) do
+    begin
+      Close ;
+      SQL.Text := StrSQL ;
+      ExecNo   := ExecSQL ;
+      if ExecNo > 0 then
+      begin
+        Result := True ;
+      end;
+      Close ;
+    end;
+  except
+    on E:Exception do
+    begin
+      if TAdoQuery(Self.FindComponent('qryInfo' + IntToStr(PLC_NO))).Active then
+         TAdoQuery(Self.FindComponent('qryInfo' + IntToStr(PLC_NO))).Close;
+      LogWriteStr(PLC_NO, ' Error : func Del_PLC_JOB:['+StrSQL + '], [' + E.Message + ']' ) ;
+    end;
+  end;
+end;
+
 procedure TfrmControl.Button2Click(Sender: TObject);
 begin
-  PLC_READ_WORD1(1);
+  PLC_READ_WORD3(1);
 end;
 
 end.
