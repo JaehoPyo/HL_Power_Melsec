@@ -245,8 +245,8 @@ begin
   begin
     for i := START_PLCNO to END_PLCNO do
     begin
-//      if TCheckBox(Self.FindComponent('cbUsed'+IntToStr(i))).Checked then
-//         bbCommClick(TBitBtn(Self.FindComponent('bbComm'+IntToStr(i))));
+      if TCheckBox(Self.FindComponent('cbUsed'+IntToStr(i))).Checked then
+         bbCommClick(TBitBtn(Self.FindComponent('bbComm'+IntToStr(i))));
     end;
   end;
   if DBConChk then ShpCon.Brush.Color := clLime
@@ -359,8 +359,8 @@ begin
     if Result <> 0 then
     begin
       TBitBtn(Self.FindComponent('bbComm'+IntToStr(PLC_NO))).Caption  := '통신시작';
-      //TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).Close;
-      TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).Close ;
+      TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).Close;
+      //TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).Close ;
       COMM_ON[PLC_NO] := False ;
     end;
   end else
@@ -419,7 +419,7 @@ begin
   if DBConChk then ShpCon.Brush.Color := clLime
   else ShpCon.Brush.Color := clRed ;
 
-  Exit;
+//  Exit;
 
   TTimer(Self.FindComponent('tmSendRecv'+IntToStr(PLC_NO))).Enabled := False;
   TTimer(Self.FindComponent('tmTimeOut' +IntToStr(PLC_NO))).Enabled := True ;
@@ -431,7 +431,7 @@ begin
     SetOnCommPNL(PLC_NO, i) ; // LED ON
 
     case COMM_FLAG[PLC_NO] of
-      CVR_D_W1, CVR_D_W2 :
+      CVR_D_W1, CVR_D_W2, CVR_D_W3 :
       begin // Read D Word(Bit) , Read D Word(Word)
         LogWriteStr(PLC_NO, Get_COMM_FLAG(PLC_NO) + 'READ PROCESS Start');
         PLC_READ_PROCESS(PLC_NO) ;
@@ -889,7 +889,7 @@ begin
       WordData[i] := HexaReverse(PLC_NO, IntToHex(Buffer[i], 4 )) ;
     end;
 
-    LogWriteStr(PLC_NO, 'PLC' + IntToStr(PLC_NO) + ' Read1 Data [' + intToStr(Net_Size) + ']');
+    LogWriteStr(PLC_NO, 'PLC' + IntToStr(PLC_NO) + ' Read2 Data [' + intToStr(Net_Size) + ']');
 
     try
       strSQL   := ' Select * from TT_SCC ' +
@@ -973,303 +973,303 @@ begin
   //++++++++++++
   // Data Read
   //++++++++++++
-//  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
+  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
 //Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).ReadDeviceBlock2(Net_Addr, Net_Size, Buffer[0] ) ;
 
 
- // st1 IN
-  // CH 06 word 영역
-  Buffer[0] := 16976;    // j = 6 , i = 12
-  Buffer[1] := 12337;
-  Buffer[2] := 11603;
-  Buffer[3] := 9008;
-
-  // CH 07 word 영역
-  Buffer[4] := 12337;    // j = 7 , i = 16
-  Buffer[5] := 8224;
-  Buffer[6] := 8224;
-  Buffer[7] := 8224;
-
-  // CH 08 word 영역
-  Buffer[8] := 19506;    // j = 8 , i = 20
-  Buffer[9] := 12848;
-  Buffer[10] := 12848;
-  Buffer[11] := 14128;
-
-  // CH 09 word 영역
-  Buffer[12] := 12336;    // j = 9 , i = 24
-  Buffer[13] := 12613;
-  Buffer[14] := 8224;
-  Buffer[15] := 8224;
-
-  // CH 10 word 영역
-  Buffer[16] := 21042;    // j = 10 , i = 28
-  Buffer[17] := 12848;
-  Buffer[18] := 12848;
-  Buffer[19] := 14128;
-
-  // CH 11 word 영역
-  Buffer[20] := 12336;    // j = 11 , i = 32
-  Buffer[21] := 12613;
-  Buffer[22] := 8224;
-  Buffer[23] := 8224;
-
-  // CH 12 word 영역
-  Buffer[24] := 17238;
-  Buffer[25] := 12337;
-  Buffer[26] := 8224;
-  Buffer[27] := 8224;
-
-  // CH 13 word 영역
-  Buffer[28] := 12337;
-  Buffer[29] := 8224;
-  Buffer[30] := 8224;
-  Buffer[31] := 8224;
-
-  // st 1 OUT
-  // CH 14 word 영역
-  Buffer[32] := 16976;    // j = 6 , i = 12
-  Buffer[33] := 12337;
-  Buffer[34] := 11603;
-  Buffer[35] := 9008;
-
-  // CH 15 word 영역
-  Buffer[36] := 12337;    // j = 7 , i = 16
-  Buffer[37] := 8224;
-  Buffer[38] := 8224;
-  Buffer[39] := 8224;
-
-  // CH 16 word 영역
-  Buffer[40] := 19506;    // j = 8 , i = 20
-  Buffer[41] := 12848;
-  Buffer[42] := 12848;
-  Buffer[43] := 14128;
-
-  // CH 17 word 영역
-  Buffer[44] := 12336;    // j = 9 , i = 24
-  Buffer[45] := 12613;
-  Buffer[46] := 8224;
-  Buffer[47] := 8224;
-
-  // CH 18 word 영역
-  Buffer[48] := 21042;    // j = 10 , i = 28
-  Buffer[49] := 12848;
-  Buffer[50] := 12848;
-  Buffer[51] := 14128;
-
-  // CH 19 word 영역
-  Buffer[52] := 12336;    // j = 11 , i = 32
-  Buffer[53] := 12613;
-  Buffer[54] := 8224;
-  Buffer[55] := 8224;
-
-  // CH 20 word 영역
-  Buffer[56] := 17238;
-  Buffer[57] := 12337;
-  Buffer[58] := 8224;
-  Buffer[59] := 8224;
-
-  // CH 21 word 영역
-  Buffer[60] := 12337;
-  Buffer[61] := 8224;
-  Buffer[62] := 8224;
-  Buffer[63] := 8224;
-
-  //st 2 IN
-  // CH 22 word 영역
-  Buffer[64] := 16976;    // j = 6 , i = 12
-  Buffer[65] := 12337;
-  Buffer[66] := 11603;
-  Buffer[67] := 9008;
-
-  // CH 23 word 영역
-  Buffer[68] := 12337;    // j = 7 , i = 16
-  Buffer[69] := 8224;
-  Buffer[70] := 8224;
-  Buffer[71] := 8224;
-
-  // CH 24 word 영역
-  Buffer[72] := 19506;    // j = 8 , i = 20
-  Buffer[73] := 12848;
-  Buffer[74] := 12848;
-  Buffer[75] := 14128;
-
-  // CH 25 word 영역
-  Buffer[76] := 12336;    // j = 9 , i = 24
-  Buffer[77] := 12613;
-  Buffer[78] := 8224;
-  Buffer[79] := 8224;
-
-  // CH 26 word 영역
-  Buffer[80] := 21042;    // j = 10 , i = 28
-  Buffer[81] := 12848;
-  Buffer[82] := 12848;
-  Buffer[83] := 14128;
-
-  // CH 27 word 영역
-  Buffer[84] := 12336;    // j = 11 , i = 32
-  Buffer[85] := 12613;
-  Buffer[86] := 8224;
-  Buffer[87] := 8224;
-
-  // CH 28 word 영역
-  Buffer[88] := 17238;
-  Buffer[89] := 12337;
-  Buffer[90] := 8224;
-  Buffer[91] := 8224;
-
-  // CH 29 word 영역
-  Buffer[92] := 12337;
-  Buffer[93] := 8224;
-  Buffer[94] := 8224;
-  Buffer[95] := 8224;
-
-  // ST 2 OUT
-  // CH 30 word 영역
-  Buffer[96] := 16976;    // j = 6 , i = 12
-  Buffer[97] := 12337;
-  Buffer[98] := 11603;
-  Buffer[99] := 9008;
-
-  // CH 31 word 영역
-  Buffer[100] := 12337;    // j = 7 , i = 16
-  Buffer[101] := 8224;
-  Buffer[102] := 8224;
-  Buffer[103] := 8224;
-
-  // CH 32 word 영역
-  Buffer[104] := 19506;    // j = 8 , i = 20
-  Buffer[105] := 12848;
-  Buffer[106] := 12848;
-  Buffer[107] := 14128;
-
-  // CH 33 word 영역
-  Buffer[108] := 12336;    // j = 9 , i = 24
-  Buffer[109] := 12613;
-  Buffer[110] := 8224;
-  Buffer[111] := 8224;
-
-  // CH 34 word 영역
-  Buffer[112] := 21042;    // j = 10 , i = 28
-  Buffer[113] := 12848;
-  Buffer[114] := 12848;
-  Buffer[115] := 14128;
-
-  // CH 35 word 영역
-  Buffer[116] := 12336;    // j = 11 , i = 32
-  Buffer[117] := 12613;
-  Buffer[118] := 8224;
-  Buffer[119] := 8224;
-
-  // CH 36 word 영역
-  Buffer[120] := 17238;
-  Buffer[121] := 12337;
-  Buffer[122] := 8224;
-  Buffer[123] := 8224;
-
-  // CH 37 word 영역
-  Buffer[124] := 12337;
-  Buffer[125] := 8224;
-  Buffer[126] := 8224;
-  Buffer[127] := 8224;
-
-  //st 3 IN
-  // CH 38 word 영역
-  Buffer[128] := 16976;    // j = 6 , i = 12
-  Buffer[129] := 12337;
-  Buffer[130] := 11603;
-  Buffer[131] := 9008;
-
-  // CH 39 word 영역
-  Buffer[132] := 12337;    // j = 7 , i = 16
-  Buffer[133] := 8224;
-  Buffer[134] := 8224;
-  Buffer[135] := 8224;
-
-  // CH 40 word 영역
-  Buffer[136] := 19506;    // j = 8 , i = 20
-  Buffer[137] := 12848;
-  Buffer[138] := 12848;
-  Buffer[139] := 14128;
-
-  // CH 41 word 영역
-  Buffer[140] := 12336;    // j = 9 , i = 24
-  Buffer[141] := 12613;
-  Buffer[142] := 8224;
-  Buffer[143] := 8224;
-
-  // CH 42 word 영역
-  Buffer[144] := 21042;    // j = 10 , i = 28
-  Buffer[145] := 12848;
-  Buffer[146] := 12848;
-  Buffer[147] := 14128;
-
-  // CH 43 word 영역
-  Buffer[148] := 12336;    // j = 11 , i = 32
-  Buffer[149] := 12613;
-  Buffer[150] := 8224;
-  Buffer[151] := 8224;
-
-  // CH 44 word 영역
-  Buffer[152] := 17238;
-  Buffer[153] := 12337;
-  Buffer[154] := 8224;
-  Buffer[155] := 8224;
-
-  // CH 45 word 영역
-  Buffer[156] := 12337;
-  Buffer[157] := 8224;
-  Buffer[158] := 8224;
-  Buffer[159] := 8224;
-
-  // ST 2 OUT
-  // CH 46 word 영역
-  Buffer[160] := 16976;    // j = 6 , i = 12
-  Buffer[161] := 12337;
-  Buffer[162] := 11603;
-  Buffer[163] := 9008;
-
-  // CH 47 word 영역
-  Buffer[164] := 12337;    // j = 7 , i = 16
-  Buffer[165] := 8224;
-  Buffer[166] := 8224;
-  Buffer[167] := 8224;
-
-  // CH 48 word 영역
-  Buffer[168] := 19506;    // j = 8 , i = 20
-  Buffer[169] := 12848;
-  Buffer[170] := 12848;
-  Buffer[171] := 14128;
-
-  // CH 49 word 영역
-  Buffer[172] := 12336;    // j = 9 , i = 24
-  Buffer[173] := 12613;
-  Buffer[174] := 8224;
-  Buffer[175] := 8224;
-
-  // CH 50 word 영역
-  Buffer[176] := 21042;    // j = 10 , i = 28
-  Buffer[177] := 12848;
-  Buffer[178] := 12848;
-  Buffer[179] := 14128;
-
-  // CH 51 word 영역
-  Buffer[180] := 12336;    // j = 11 , i = 32
-  Buffer[181] := 12613;
-  Buffer[182] := 8224;
-  Buffer[183] := 8224;
-
-  // CH 52 word 영역
-  Buffer[184] := 17238;
-  Buffer[185] := 12337;
-  Buffer[186] := 8224;
-  Buffer[187] := 8224;
-
-  // CH 53 word 영역
-  Buffer[188] := 12337;
-  Buffer[189] := 8224;
-  Buffer[190] := 8224;
-  Buffer[191] := 8224;
+//  // st1 IN
+//  // CH 06 word 영역
+//  Buffer[0] := 16976;    // j = 6 , i = 12
+//  Buffer[1] := 12337;
+//  Buffer[2] := 11603;
+//  Buffer[3] := 9008;
+//
+//  // CH 07 word 영역
+//  Buffer[4] := 12337;    // j = 7 , i = 16
+//  Buffer[5] := 8224;
+//  Buffer[6] := 8224;
+//  Buffer[7] := 8224;
+//
+//  // CH 08 word 영역
+//  Buffer[8] := 19506;    // j = 8 , i = 20
+//  Buffer[9] := 12848;
+//  Buffer[10] := 12848;
+//  Buffer[11] := 14128;
+//
+//  // CH 09 word 영역
+//  Buffer[12] := 12336;    // j = 9 , i = 24
+//  Buffer[13] := 12613;
+//  Buffer[14] := 8224;
+//  Buffer[15] := 8224;
+//
+//  // CH 10 word 영역
+//  Buffer[16] := 21042;    // j = 10 , i = 28
+//  Buffer[17] := 12848;
+//  Buffer[18] := 12848;
+//  Buffer[19] := 14128;
+//
+//  // CH 11 word 영역
+//  Buffer[20] := 12336;    // j = 11 , i = 32
+//  Buffer[21] := 12613;
+//  Buffer[22] := 8224;
+//  Buffer[23] := 8224;
+//
+//  // CH 12 word 영역
+//  Buffer[24] := 17238;
+//  Buffer[25] := 12337;
+//  Buffer[26] := 8224;
+//  Buffer[27] := 8224;
+//
+//  // CH 13 word 영역
+//  Buffer[28] := 12337;
+//  Buffer[29] := 8224;
+//  Buffer[30] := 8224;
+//  Buffer[31] := 8224;
+//
+//  // st 1 OUT
+//  // CH 14 word 영역
+//  Buffer[32] := 16976;    // j = 6 , i = 12
+//  Buffer[33] := 12337;
+//  Buffer[34] := 11603;
+//  Buffer[35] := 9008;
+//
+//  // CH 15 word 영역
+//  Buffer[36] := 12337;    // j = 7 , i = 16
+//  Buffer[37] := 8224;
+//  Buffer[38] := 8224;
+//  Buffer[39] := 8224;
+//
+//  // CH 16 word 영역
+//  Buffer[40] := 19506;    // j = 8 , i = 20
+//  Buffer[41] := 12848;
+//  Buffer[42] := 12848;
+//  Buffer[43] := 14128;
+//
+//  // CH 17 word 영역
+//  Buffer[44] := 12336;    // j = 9 , i = 24
+//  Buffer[45] := 12613;
+//  Buffer[46] := 8224;
+//  Buffer[47] := 8224;
+//
+//  // CH 18 word 영역
+//  Buffer[48] := 21042;    // j = 10 , i = 28
+//  Buffer[49] := 12848;
+//  Buffer[50] := 12848;
+//  Buffer[51] := 14128;
+//
+//  // CH 19 word 영역
+//  Buffer[52] := 12336;    // j = 11 , i = 32
+//  Buffer[53] := 12613;
+//  Buffer[54] := 8224;
+//  Buffer[55] := 8224;
+//
+//  // CH 20 word 영역
+//  Buffer[56] := 17238;
+//  Buffer[57] := 12337;
+//  Buffer[58] := 8224;
+//  Buffer[59] := 8224;
+//
+//  // CH 21 word 영역
+//  Buffer[60] := 12337;
+//  Buffer[61] := 8224;
+//  Buffer[62] := 8224;
+//  Buffer[63] := 8224;
+//
+//  //st 2 IN
+//  // CH 22 word 영역
+//  Buffer[64] := 16976;    // j = 6 , i = 12
+//  Buffer[65] := 12337;
+//  Buffer[66] := 11603;
+//  Buffer[67] := 9008;
+//
+//  // CH 23 word 영역
+//  Buffer[68] := 12337;    // j = 7 , i = 16
+//  Buffer[69] := 8224;
+//  Buffer[70] := 8224;
+//  Buffer[71] := 8224;
+//
+//  // CH 24 word 영역
+//  Buffer[72] := 19506;    // j = 8 , i = 20
+//  Buffer[73] := 12848;
+//  Buffer[74] := 12848;
+//  Buffer[75] := 14128;
+//
+//  // CH 25 word 영역
+//  Buffer[76] := 12336;    // j = 9 , i = 24
+//  Buffer[77] := 12613;
+//  Buffer[78] := 8224;
+//  Buffer[79] := 8224;
+//
+//  // CH 26 word 영역
+//  Buffer[80] := 21042;    // j = 10 , i = 28
+//  Buffer[81] := 12848;
+//  Buffer[82] := 12848;
+//  Buffer[83] := 14128;
+//
+//  // CH 27 word 영역
+//  Buffer[84] := 12336;    // j = 11 , i = 32
+//  Buffer[85] := 12613;
+//  Buffer[86] := 8224;
+//  Buffer[87] := 8224;
+//
+//  // CH 28 word 영역
+//  Buffer[88] := 17238;
+//  Buffer[89] := 12337;
+//  Buffer[90] := 8224;
+//  Buffer[91] := 8224;
+//
+//  // CH 29 word 영역
+//  Buffer[92] := 12337;
+//  Buffer[93] := 8224;
+//  Buffer[94] := 8224;
+//  Buffer[95] := 8224;
+//
+//  // ST 2 OUT
+//  // CH 30 word 영역
+//  Buffer[96] := 16976;    // j = 6 , i = 12
+//  Buffer[97] := 12337;
+//  Buffer[98] := 11603;
+//  Buffer[99] := 9008;
+//
+//  // CH 31 word 영역
+//  Buffer[100] := 12337;    // j = 7 , i = 16
+//  Buffer[101] := 8224;
+//  Buffer[102] := 8224;
+//  Buffer[103] := 8224;
+//
+//  // CH 32 word 영역
+//  Buffer[104] := 19506;    // j = 8 , i = 20
+//  Buffer[105] := 12848;
+//  Buffer[106] := 12848;
+//  Buffer[107] := 14128;
+//
+//  // CH 33 word 영역
+//  Buffer[108] := 12336;    // j = 9 , i = 24
+//  Buffer[109] := 12613;
+//  Buffer[110] := 8224;
+//  Buffer[111] := 8224;
+//
+//  // CH 34 word 영역
+//  Buffer[112] := 21042;    // j = 10 , i = 28
+//  Buffer[113] := 12848;
+//  Buffer[114] := 12848;
+//  Buffer[115] := 14128;
+//
+//  // CH 35 word 영역
+//  Buffer[116] := 12336;    // j = 11 , i = 32
+//  Buffer[117] := 12613;
+//  Buffer[118] := 8224;
+//  Buffer[119] := 8224;
+//
+//  // CH 36 word 영역
+//  Buffer[120] := 17238;
+//  Buffer[121] := 12337;
+//  Buffer[122] := 8224;
+//  Buffer[123] := 8224;
+//
+//  // CH 37 word 영역
+//  Buffer[124] := 12337;
+//  Buffer[125] := 8224;
+//  Buffer[126] := 8224;
+//  Buffer[127] := 8224;
+//
+//  //st 3 IN
+//  // CH 38 word 영역
+//  Buffer[128] := 16976;    // j = 6 , i = 12
+//  Buffer[129] := 12337;
+//  Buffer[130] := 11603;
+//  Buffer[131] := 9008;
+//
+//  // CH 39 word 영역
+//  Buffer[132] := 12337;    // j = 7 , i = 16
+//  Buffer[133] := 8224;
+//  Buffer[134] := 8224;
+//  Buffer[135] := 8224;
+//
+//  // CH 40 word 영역
+//  Buffer[136] := 19506;    // j = 8 , i = 20
+//  Buffer[137] := 12848;
+//  Buffer[138] := 12848;
+//  Buffer[139] := 14128;
+//
+//  // CH 41 word 영역
+//  Buffer[140] := 12336;    // j = 9 , i = 24
+//  Buffer[141] := 12613;
+//  Buffer[142] := 8224;
+//  Buffer[143] := 8224;
+//
+//  // CH 42 word 영역
+//  Buffer[144] := 21042;    // j = 10 , i = 28
+//  Buffer[145] := 12848;
+//  Buffer[146] := 12848;
+//  Buffer[147] := 14128;
+//
+//  // CH 43 word 영역
+//  Buffer[148] := 12336;    // j = 11 , i = 32
+//  Buffer[149] := 12613;
+//  Buffer[150] := 8224;
+//  Buffer[151] := 8224;
+//
+//  // CH 44 word 영역
+//  Buffer[152] := 17238;
+//  Buffer[153] := 12337;
+//  Buffer[154] := 8224;
+//  Buffer[155] := 8224;
+//
+//  // CH 45 word 영역
+//  Buffer[156] := 12337;
+//  Buffer[157] := 8224;
+//  Buffer[158] := 8224;
+//  Buffer[159] := 8224;
+//
+//  // ST 2 OUT
+//  // CH 46 word 영역
+//  Buffer[160] := 16976;    // j = 6 , i = 12
+//  Buffer[161] := 12337;
+//  Buffer[162] := 11603;
+//  Buffer[163] := 9008;
+//
+//  // CH 47 word 영역
+//  Buffer[164] := 12337;    // j = 7 , i = 16
+//  Buffer[165] := 8224;
+//  Buffer[166] := 8224;
+//  Buffer[167] := 8224;
+//
+//  // CH 48 word 영역
+//  Buffer[168] := 19506;    // j = 8 , i = 20
+//  Buffer[169] := 12848;
+//  Buffer[170] := 12848;
+//  Buffer[171] := 14128;
+//
+//  // CH 49 word 영역
+//  Buffer[172] := 12336;    // j = 9 , i = 24
+//  Buffer[173] := 12613;
+//  Buffer[174] := 8224;
+//  Buffer[175] := 8224;
+//
+//  // CH 50 word 영역
+//  Buffer[176] := 21042;    // j = 10 , i = 28
+//  Buffer[177] := 12848;
+//  Buffer[178] := 12848;
+//  Buffer[179] := 14128;
+//
+//  // CH 51 word 영역
+//  Buffer[180] := 12336;    // j = 11 , i = 32
+//  Buffer[181] := 12613;
+//  Buffer[182] := 8224;
+//  Buffer[183] := 8224;
+//
+//  // CH 52 word 영역
+//  Buffer[184] := 17238;
+//  Buffer[185] := 12337;
+//  Buffer[186] := 8224;
+//  Buffer[187] := 8224;
+//
+//  // CH 53 word 영역
+//  Buffer[188] := 12337;
+//  Buffer[189] := 8224;
+//  Buffer[190] := 8224;
+//  Buffer[191] := 8224;
 
 
   if Result = 0 then
@@ -1282,7 +1282,7 @@ begin
       WordData[i] := HexaReverse(PLC_NO, IntToHex(Buffer[i], 4 )) ;
     end;
 
-    LogWriteStr(PLC_NO, 'PLC' + IntToStr(PLC_NO) + ' Read1 Data [' + intToStr(Net_Size) + ']');
+    LogWriteStr(PLC_NO, 'PLC' + IntToStr(PLC_NO) + ' Read3 Data [' + intToStr(Net_Size) + ']');
 
     try
       strSQL   := ' Select * from TT_SCC ' +
@@ -1293,8 +1293,8 @@ begin
       tempSQL2 := '';
       tempSQL3 := '';
 
-      i := 0 ; j := 6 ;
-      while j <= 53 do
+      i := 0 ; j := 7 ;
+      while j <= 54 do
       begin
         // Update SQL
         tempSQL  := tempSQL  + 'CH' + FormatFloat('00', j) + ' = ''' + WordData[i+0] + WordData[i+1] + WordData[i+2] + WordData[i+3] + ''', ';
@@ -1352,13 +1352,12 @@ end;
 //==============================================================================
 procedure TfrmControl.PLC_WRITE_WORD1(PLC_NO:Integer);
 var
-  Result, Net_Size : integer ;
+  Result, Net_Size : Integer ;
   strSQL : String ;
   Net_Addr : WideString ;
   Buffer       : Array [0..9] of Word ;
   Buffer_Move  : Word ;
   Buffer_Clear : Array [0..10] of Word ;
-  Buffer_Door  : Word;
   SCORD  : Array [START_PLCNO..End_PLCNO] of TSC_ORDER ;
 begin
   try
@@ -1389,7 +1388,7 @@ begin
 //        Buffer[09] := StrToInt('$' + SCORD[PLC_NO].SCORD_D109 );  // 예비
 
 
-        Buffer[00] := StrToInt(SCORD[PLC_NO].SCORD_D100 );  // 적재 열
+        Buffer[00] := StrToInt('0' );  // 적재 열
         Buffer[01] := StrToInt(SCORD[PLC_NO].SCORD_D101 );  // 적재 연
         Buffer[02] := StrToInt(SCORD[PLC_NO].SCORD_D102 );  // 적재 단
         Buffer[03] := StrToInt(SCORD[PLC_NO].SCORD_D103 );  // 하역 열
@@ -1401,7 +1400,7 @@ begin
         Buffer[09] := StrToInt(SCORD[PLC_NO].SCORD_D109 );  // 예비
 
         Net_Addr := 'D100' ;
-        Net_Size := 10 ;
+        Net_Size := 1 ;
 
         Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer[0] ) ;
       end else
