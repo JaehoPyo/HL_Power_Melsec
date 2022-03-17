@@ -118,6 +118,7 @@ type
 
     procedure PLC_WRITE_WORD1(PLC_NO:Integer) ;   // D Word 영역 Write 처리
     procedure PLC_WRITE_WORD2(PLC_NO:Integer) ;
+
     function  DBConnection: Boolean;
     function  Get_COMM_FLAG(PLC_NO:Integer):String ;
     function  Get_COMM_FLAGNo(PLC_NO:Integer):integer ;
@@ -1334,6 +1335,55 @@ begin
         SQL.Text := strSQL;
         ExecSQL ;
       end;
+
+      with TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO)) ) do
+      begin
+        Close;
+        SQL.Clear;
+        j := 0;
+        for i := 1 to 6 do
+        begin
+          StrSQL := ' UPDATE TC_RFID ' +
+                      '  SET H01 = ' + QuotedStr(AsciiToString(WordData[j + 0])) +
+                      '    , H02 = ' + QuotedStr(AsciiToString(WordData[j + 1])) +
+                      '    , H03 = ' + QuotedStr(AsciiToString(WordData[j + 2])) +
+                      '    , H04 = ' + QuotedStr(AsciiToString(WordData[j + 3])) +
+                      '    , H05 = ' + QuotedStr(AsciiToString(WordData[j + 4])) +
+                      '    , H06 = ' + QuotedStr(AsciiToString(WordData[j + 5])) +
+                      '    , H07 = ' + QuotedStr(AsciiToString(WordData[j + 6])) +
+                      '    , H08 = ' + QuotedStr(AsciiToString(WordData[j + 7])) +
+                      '    , H09 = ' + QuotedStr(AsciiToString(WordData[j + 8])) +
+                      '    , H10 = ' + QuotedStr(AsciiToString(WordData[j + 9])) +
+                      '    , H11 = ' + QuotedStr(AsciiToString(WordData[j + 10])) +
+                      '    , H12 = ' + QuotedStr(AsciiToString(WordData[j + 11])) +
+                      '    , H13 = ' + QuotedStr(AsciiToString(WordData[j + 12])) +
+                      '    , H14 = ' + QuotedStr(AsciiToString(WordData[j + 13])) +
+                      '    , H15 = ' + QuotedStr(AsciiToString(WordData[j + 14])) +
+                      '    , H16 = ' + QuotedStr(AsciiToString(WordData[j + 15])) +
+                      '    , H17 = ' + QuotedStr(AsciiToString(WordData[j + 16])) +
+                      '    , H18 = ' + QuotedStr(AsciiToString(WordData[j + 17])) +
+                      '    , H19 = ' + QuotedStr(AsciiToString(WordData[j + 18])) +
+                      '    , H20 = ' + QuotedStr(AsciiToString(WordData[j + 19])) +
+                      '    , H21 = ' + QuotedStr(AsciiToString(WordData[j + 20])) +
+                      '    , H22 = ' + QuotedStr(AsciiToString(WordData[j + 21])) +
+                      '    , H23 = ' + QuotedStr(AsciiToString(WordData[j + 22])) +
+                      '    , H24 = ' + QuotedStr(AsciiToString(WordData[j + 23])) +
+                      '    , H25 = ' + QuotedStr(AsciiToString(WordData[j + 24])) +
+                      '    , H26 = ' + QuotedStr(AsciiToString(WordData[j + 25])) +
+                      '    , H27 = ' + QuotedStr(AsciiToString(WordData[j + 26])) +
+                      '    , H28 = ' + QuotedStr(AsciiToString(WordData[j + 27])) +
+                      '    , H29 = ' + QuotedStr(AsciiToString(WordData[j + 28])) +
+                      '    , H30 = ' + QuotedStr(AsciiToString(WordData[j + 29])) +
+                      '    , H31 = ' + QuotedStr(AsciiToString(WordData[j + 30])) +
+                      '    , H32 = ' + QuotedStr(AsciiToString(WordData[j + 31])) +
+                      '    , UPD_DT = GETDATE() ' +
+                     ' WHERE PORT_NO = ' + QuotedStr(IntToStr(i));
+          SQL.Text := StrSQL;
+          ExecSQL;
+          inc(j, 32);
+        end;
+      end;
+
     except
       if TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active then
          TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active := False;
@@ -1388,7 +1438,7 @@ begin
 //        Buffer[09] := StrToInt('$' + SCORD[PLC_NO].SCORD_D109 );  // 예비
 
 
-        Buffer[00] := StrToInt('0' );  // 적재 열
+        Buffer[00] := StrToInt(SCORD[PLC_NO].SCORD_D100 );  // 적재 열
         Buffer[01] := StrToInt(SCORD[PLC_NO].SCORD_D101 );  // 적재 연
         Buffer[02] := StrToInt(SCORD[PLC_NO].SCORD_D102 );  // 적재 단
         Buffer[03] := StrToInt(SCORD[PLC_NO].SCORD_D103 );  // 하역 열
@@ -1400,7 +1450,7 @@ begin
         Buffer[09] := StrToInt(SCORD[PLC_NO].SCORD_D109 );  // 예비
 
         Net_Addr := 'D100' ;
-        Net_Size := 1 ;
+        Net_Size := 10 ;
 
         Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer[0] ) ;
       end else
@@ -1493,12 +1543,15 @@ begin
       //+++++++++++++++++++++++++++++++
       // 라이트커튼on/off(D111)
       //+++++++++++++++++++++++++++++++
-      Buffer_Door := StrToInt('$' + PLC_ORD.D111);
+      if (PLC_ORD.ORD_ST = '0') then
+      begin
+        Buffer_Door := StrToInt('$' + PLC_ORD.D111);
 
-      Net_Addr := 'D111' ;
-      Net_Size := 1 ;
+        Net_Addr := 'D111' ;
+        Net_Size := 1 ;
 
-      Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Door ) ;
+        Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Door ) ;
+      end;
 
       if Result = 0 then
       begin

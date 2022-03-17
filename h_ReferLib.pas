@@ -17,6 +17,7 @@ uses Inifiles,Windows, Sysutils;
   function  BinStrToCharStr( BinS : String ) : String; // 0010 -> 2
   function  BinStringToChar( BinS : String ) : Char; // 0010 -> 2
   function  chStrToInt( Str : String) : Integer;
+  function  AsciiToString(AsciiString: String) : String; // 3435 -> 45 [Ascii:34 -> 1]
 
 var
   BiteArray : Array [0..15] of String = ('0000', '0001', '0010', '0011', '0100', '0101',
@@ -286,6 +287,27 @@ begin
   if xStr2 = '' then xStr2 := '0';
 
   result := StrToInt(xStr2);
+end;
+
+function  AsciiToString(AsciiString: String) : String; // 3435 -> 45 [Ascii:34 -> 1]
+var
+  I,j,Len : Integer;
+begin
+  Result := '';
+  Len := Length(AsciiString) div 2;
+  j := 1;
+  for I := 1 to Len do
+  begin
+    if (Copy(AsciiString, j, 2) = '00') then
+    begin
+      Result := Result + '';
+    end
+    else
+    begin
+      Result := Result + Char(StrToInt('$' + Copy(AsciiString, j, 2)));
+    end;
+    j := j + 2;
+  end;
 end;
 
 end.
