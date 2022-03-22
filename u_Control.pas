@@ -1526,10 +1526,11 @@ end;
 //==============================================================================
 procedure TfrmControl.PLC_WRITE_WORD2(PLC_NO:Integer);
 var
-  Result, Net_Size : integer ;
+  Result, Net_Size, i, Idx : integer ;
   strSQL : String ;
   Net_Addr : WideString ;
-  Buffer_Door  : Word;
+  Buffer_Door : Word;
+  Buffer_Clear : Array[0..32] of Word;
   PLC_ORD  : TPLC_ORDER ;
 begin
   try
@@ -1539,6 +1540,8 @@ begin
 
     while Get_PLC_JOB2(PLC_NO, PLC_ORD) do
     begin
+
+      Idx := StrToInt(PLC_ORD.ORD_ST);
 
       //+++++++++++++++++++++++++++++++
       // 라이트커튼on/off(D111)
@@ -1551,6 +1554,28 @@ begin
         Net_Size := 1 ;
 
         Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Door ) ;
+      end else
+      //+++++++++++++++++++++++++++++++
+      // RFID 1번 초기화
+      //+++++++++++++++++++++++++++++++
+      if (Idx in [1, 2, 3, 4, 5, 6]) then
+      begin
+        for i := 0 to 31 do
+        begin
+          Buffer_Clear[i] := StrToInt('$0000');
+        end;
+
+        case Idx of
+          1 : Net_Addr := 'D1200';
+          2 : Net_Addr := 'D1232';
+          3 : Net_Addr := 'D1264';
+          4 : Net_Addr := 'D1296';
+          5 : Net_Addr := 'D1328';
+          6 : Net_Addr := 'D1360';
+        end;
+        Net_Size := 32;
+
+        Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Clear[0] ) ;
       end;
 
       if Result = 0 then
@@ -1593,7 +1618,7 @@ begin
               '        SCORD_D106, SCORD_D107, SCORD_D108,  ' +
               '        SCORD_D109, SCORD_D110, SCORD_STATUS ' +
               '   FROM TT_SCORD ' +
-              '  WHERE SC_NO= ''' + IntToStr(PLC_NO) + ''' ' +
+              '  WHERE SC_NO = ''' + IntToStr(PLC_NO) + ''' ' +
               '  ORDER BY SCORD_DT ' ;
 
     with TAdoQuery(Self.FindComponent('qryInfo' + IntToStr(PLC_NO))) do
