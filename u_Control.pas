@@ -1548,7 +1548,7 @@ begin
       //+++++++++++++++++++++++++++++++
       if (PLC_ORD.ORD_ST = '0') then
       begin
-        Buffer_Door := StrToInt('$' + PLC_ORD.D111);
+        Buffer_Door := StrToInt(PLC_ORD.D111);
 
         Net_Addr := 'D111' ;
         Net_Size := 1 ;
