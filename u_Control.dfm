@@ -239,7 +239,7 @@ object frmControl: TfrmControl
             ControlData = {
               000300004F0300004F0300000300D30000000300000000000300010000000300
               0100000008001C0000003100390032002E003100360038002E0030002E003100
-              3600300000000300000000000300FF0300000300000000000300000000000800
+              3000300000000300000000000300FF0300000300000000000300010000000800
               0200000000000300010000000300000000000300E8030000030000000000}
           end
           object ActQJ71E71TCP1: TActQJ71E71TCP
@@ -251,7 +251,7 @@ object frmControl: TfrmControl
             ControlData = {
               000300004F0300004F0300000300010000000300010000000300000000000300
               000000000300FF0300000300D300000008001C0000003100390032002E003100
-              360038002E0030002E0031003600300000000300102700000300010000000300
+              360038002E0030002E0031003000300000000300102700000300010000000300
               0200000003000000000003000000000003000000000003000100000003000100
               000008000000000003008A130000}
           end
@@ -335,15 +335,6 @@ object frmControl: TfrmControl
               Height = 16
               AutoSize = False
               Caption = 'SC'
-            end
-            object Button2: TButton
-              Left = 248
-              Top = 10
-              Width = 75
-              Height = 25
-              Caption = 'Button2'
-              TabOrder = 0
-              OnClick = Button2Click
             end
           end
           object pnlPLC3: TPanel
@@ -838,6 +829,13 @@ object frmControl: TfrmControl
     Connection = MainDatabase
     Parameters = <>
     Left = 130
+    Top = 127
+  end
+  object qryTemp: TADOQuery
+    Tag = 1
+    Connection = MainDatabase
+    Parameters = <>
+    Left = 162
     Top = 127
   end
 end

@@ -13,6 +13,7 @@ uses Inifiles,Windows, Sysutils;
   function  DecToHexa(Rs : Integer) : string;          // 1024 -> Hexa('0100')
   function  HexStrToBinStr( HexStr : String) : String;
   function  BinStrToHexStr( BinStr : String ) : String; // 0010 0000 -> 20
+  function  BinToInt(BinStr : String) : Integer;
   function  ReverseStr( Rs : String) : String;
   function  BinStrToCharStr( BinS : String ) : String; // 0010 -> 2
   function  BinStringToChar( BinS : String ) : Char; // 0010 -> 2
@@ -237,6 +238,19 @@ begin
     end;
     Result := Result + inttohex(j, 0);
   End;
+end;
+
+function  BinToInt(BinStr : String) : Integer;
+var
+  i, len: Integer;
+begin
+  Result := 0;
+  len := Length(BinStr);
+  for i := len downto 1 do
+  begin
+    if (BinStr[i] = '1') then
+      Result := Result + (1 shl (len - i));
+  end;
 end;
 
 function  ReverseStr( Rs : String) : String;
