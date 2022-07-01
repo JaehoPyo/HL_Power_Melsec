@@ -838,4 +838,11 @@ object frmControl: TfrmControl
     Left = 162
     Top = 127
   end
+  object qryRead: TADOQuery
+    Tag = 1
+    Connection = MainDatabase
+    Parameters = <>
+    Left = 194
+    Top = 127
+  end
 end

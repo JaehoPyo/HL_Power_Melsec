@@ -80,6 +80,7 @@ type
     gb_SC_COMM: TGroupBox;
     ShpCon: TShape;
     qryTemp: TADOQuery;
+    qryRead: TADOQuery;
 
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -113,9 +114,7 @@ type
 
     procedure PLC_READ_WORD1(PLC_NO:Integer); // CH01 ~ CH02 : SC D(Bit) 영역  (  Bit D0010.00 ~ D0011.15 : 2Word * 16Field = 32 Bit )
     procedure PLC_READ_WORD2(PLC_NO:Integer); // CH03 ~ CH05 : SC D(word)영역  ( Word D0012 ~ D0023 : 4Word * 3Field = 12 Word )
-    procedure PLC_READ_WORD3(PLC_NO:Integer); //
-    procedure PLC_READ_WORD4(PLC_NO:Integer); //
-
+    procedure PLC_READ_WORD3(PLC_NO:Integer; Station:Integer); //
 
     procedure PLC_WRITE_WORD1(PLC_NO:Integer) ;   // D Word 영역 Write 처리
     procedure PLC_WRITE_WORD2(PLC_NO:Integer) ;
@@ -134,6 +133,8 @@ type
     function fnDBConChk: Boolean;
     procedure CloseChkMsg(Sender: TObject);
 
+    procedure SCTREAD(SC_NO:Integer); // SC 상태 READ
+
     procedure fnSet_Current(Cur_Name, FName, FValue : String);
   end;
 
@@ -145,7 +146,26 @@ Const
   MaxPLC_Cnt  = 1 ; // PLC COUNT
 
 
+type
+  TSC_STATUS = Record
+      D200  ,
+      D201  ,
+      D202  ,
+      D203  ,
+      D204  ,
+      D205  ,
+      D206  ,
+      D207  ,
+      D208  ,
+      D209  : String ;
+      D210  : Array [0..15] of String ;
+      D211  : Array [0..15] of String ;
+      D212  : Array [0..15] of String ;
+      D213  : Array [0..15] of String ;
+  end;
+
 var
+  SC_STATUS     : Array[1..1] of TSC_STATUS ;    // SC 상태
   frmControl: TfrmControl;
   COMM_FLAG : Array[START_PLCNO..End_PLCNO] of TCOMM_FLAG ;
   COMM_ON   : Array[START_PLCNO..End_PLCNO] of Boolean ;
@@ -155,6 +175,8 @@ var
   RunMode   : Boolean ;
   CloseChk  : Boolean ;       // 프로그램 종료 Flag
 
+  RFID_DataBuffer : Array [0..99] of Integer;
+  RFID_DataWord : Array [0..99] of String;
 implementation
 
 {$R *.dfm}
@@ -277,13 +299,11 @@ begin
     begin
      Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(i))).Open ;
     // Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(i))).Open ;
-    // Result := TActQJ71E71UDP(Self.FindComponent('ActQJ71E71UDP' + IntToStr(i))).Open;
       if Result <> 0 then
       begin
         TBitBtn(Self.FindComponent('bbComm'+IntToStr(i))).Caption := '통신시작' ;
         TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(i))).Close ;
      //   TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(i))).Close;
-     //   TActQJ71E71UDP(Self.FindComponent('ActQJ71E71UDP' + IntToStr(i))).Close;
       end ;
     end else
     begin
@@ -317,7 +337,6 @@ begin
     begin
    //  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(i))).Close ;
     Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(i))).Close ;
-   //   TActQJ71E71UDP(Self.FindComponent('ActQJ71E71UDP' + IntToStr(i))).Close;
       if Result <> 0 then
       begin
         TBitBtn(Self.FindComponent('bbComm'+IntToStr(i))).Caption  := '통신중지';
@@ -361,12 +380,11 @@ begin
   if RunMode then
   begin
   //  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).Open ;
-    Result := TActQJ71E71UDP(Self.FindComponent('ActQJ71E71UDP' + IntToStr(PLC_NO))).Open;
+    Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).Open;
     if Result <> 0 then
     begin
       TBitBtn(Self.FindComponent('bbComm'+IntToStr(PLC_NO))).Caption  := '통신시작';
     //  TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).Close;
-    //  TActQJ71E71UDP(Self.FindComponent('ActQJ71E71UDP' + IntToStr(PLC_NO))).Close;
       TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).Close ;
       COMM_ON[PLC_NO] := False ;
     end;
@@ -399,7 +417,7 @@ begin
   case COMM_FLAG[PLC_NO] of
     CVR_D_W1 : PLC_READ_WORD1(PLC_NO) ; //  Read D Word(Word)
     CVR_D_W2 : PLC_READ_WORD2(PLC_NO) ; //  Read D Word(Bit)
-    CVR_D_W3 : PLC_READ_WORD4(PLC_NO) ; //  Read D Word(RFID data area);
+//    CVR_D_W3 : PLC_READ_WORD3(PLC_NO) ; //  Read D Word(RFID data area)
   end;
 end;
 
@@ -530,6 +548,84 @@ begin
 end;
 
 //==============================================================================
+// SCTREAD
+//==============================================================================
+procedure TfrmControl.SCTREAD(SC_NO: Integer);
+var
+  i, j : integer ;
+  StrSql, TmpCol, StrLog, D210, D211, D212, D213 : String ;
+begin
+  D210:=''; D211:=''; D212:=''; D213:='';
+
+  StrSql := ' SELECT * FROM VW_SC_STAUS ' +
+            '  WHERE SC_NO =''' + IntToStr(SC_NO) + ''' ';
+
+  try
+    with qryREAD do
+    begin
+      Close;
+      SQL.Clear;
+      SQL.Text := StrSql;
+      Open;
+      if not (Bof and Eof ) then
+      begin
+        // Word Data -> 10 Word
+        SC_STATUS[SC_NO].D200 := FormatFloat('0000',StrToInt('$' + FieldByName('D200').AsString)) ; // Hex -> Dec
+        SC_STATUS[SC_NO].D201 := FormatFloat('0000',StrToInt('$' + FieldByName('D201').AsString)) ; // Hex -> Dec
+        SC_STATUS[SC_NO].D202 := FieldByName('D202').AsString ;
+        SC_STATUS[SC_NO].D203 := FieldByName('D203').AsString ;
+        SC_STATUS[SC_NO].D204 := FieldByName('D204').AsString ;
+        SC_STATUS[SC_NO].D205 := FormatFloat('0000',StrToInt('$' + FieldByName('D205').AsString)) ; // Hex -> Dec
+        SC_STATUS[SC_NO].D206 := FieldByName('D206').AsString ;
+        SC_STATUS[SC_NO].D207 := FieldByName('D207').AsString ;
+        SC_STATUS[SC_NO].D208 := FieldByName('D208').AsString ;
+        SC_STATUS[SC_NO].D209 := FieldByName('D209').AsString ;
+
+        // Bit Data -> 2 Word
+        for j := 0 to 15 do
+        begin
+          TmpCol := 'D210_' + FormatFloat('00', j) ;
+          SC_STATUS[SC_NO].D210[j] := FieldByName(TmpCol).AsString ;
+          D210 := D210 + SC_STATUS[SC_NO].D210[j] ;
+          TmpCol := 'D211_' + FormatFloat('00', j) ;
+          SC_STATUS[SC_NO].D211[j] := FieldByName(TmpCol).AsString ;
+          D211 := D211 + SC_STATUS[SC_NO].D211[j] ;
+          TmpCol := 'D212_' + FormatFloat('00', j) ;
+          SC_STATUS[SC_NO].D212[j] := FieldByName(TmpCol).AsString ;
+          D212 := D212 + SC_STATUS[SC_NO].D212[j] ;
+          Tmpcol := 'D213_' + FormatFloat('00', j);
+          SC_STATUS[SC_NO].D213[j] := FieldByName(TmpCol).AsString ;
+          D213 := D213 + SC_STATUS[SC_NO].D213[j];
+        end;
+
+//        //라이트 커튼 상태
+//        PLC_ReadVal.Curtain[1] := SC_STATUS[SC_NO].D212[0];
+//        PLC_ReadVal.Curtain[2] := SC_STATUS[SC_NO].D212[1];
+//        PLC_ReadVal.Curtain[3] := SC_STATUS[SC_NO].D212[2];
+//        PLC_ReadVal.Curtain[4] := SC_STATUS[SC_NO].D212[3];
+//        PLC_ReadVal.Curtain[5] := SC_STATUS[SC_NO].D212[4];
+//        PLC_ReadVal.Curtain[6] := SC_STATUS[SC_NO].D212[5];
+//
+//        // RFID Read 상태
+//        PLC_ReadVal.RFID_Read[1] := SC_STATUS[SC_NO].D213[0];
+//        PLC_ReadVal.RFID_Read[2] := SC_STATUS[SC_NO].D213[1];
+//        PLC_ReadVal.RFID_Read[3] := SC_STATUS[SC_NO].D213[2];
+//        PLC_ReadVal.RFID_Read[4] := SC_STATUS[SC_NO].D213[3];
+//        PLC_ReadVal.RFID_Read[5] := SC_STATUS[SC_NO].D213[4];
+//        PLC_ReadVal.RFID_Read[6] := SC_STATUS[SC_NO].D213[5];
+      end;
+      Close;
+    end;
+  except
+    On E:Exception do
+    begin
+      qryREAD.Close;
+      LogWriteStr(1, Get_COMM_FLAG(1) + 'PLC' + IntToStr(1) + ' SCTREAD Error , ErrorCode [' + E.Message + '] ');
+    end;
+  end;
+end;
+
+//==============================================================================
 // SetOffCommPNL : 해당 되는 PNL 을 Off ( clYellow ) 시킨다.
 //==============================================================================
 procedure TfrmControl.SetOffCommPNL(PLC_NO, iMode:integer);
@@ -630,8 +726,7 @@ begin
 
   case COMM_FLAG[i] of
     CVR_D_W1  : COMM_FLAG[i] := CVR_D_W2;
-    CVR_D_W2  : COMM_FLAG[i] := CVR_D_W3;
-    CVR_D_W3  : COMM_FLAG[i] := CVW_D_W1;
+    CVR_D_W2  : COMM_FLAG[i] := CVW_D_W1;
     CVW_D_W1  : COMM_FLAG[i] := CVW_D_W2;
     CVW_D_W2  : COMM_FLAG[i] := CVR_D_W1;
   end;
@@ -645,8 +740,7 @@ procedure TfrmControl.Set_COMM_FLAG(PLC_NO:integer);
 begin
   case COMM_FLAG[PLC_NO] of
     CVR_D_W1  : COMM_FLAG[PLC_NO] := CVR_D_W2;
-    CVR_D_W2  : COMM_FLAG[PLC_NO] := CVR_D_W3;
-    CVR_D_W3  : COMM_FLAG[PLC_NO] := CVW_D_W1;
+    CVR_D_W2  : COMM_FLAG[PLC_NO] := CVW_D_W1;
     CVW_D_W1  : COMM_FLAG[PLC_NO] := CVW_D_W2;
     CVW_D_W2  : COMM_FLAG[PLC_NO] := CVR_D_W1;
   end;
@@ -735,9 +829,8 @@ begin
   case COMM_FLAG[PLC_NO] of
     CVR_D_W1 : iResult := 1 ;  // 상태정보 읽기(Word)
     CVR_D_W2 : iResult := 2 ;  // 상태정보 읽기(Bit)
-    CVR_D_W3 : iResult := 3 ;
-    CVW_D_W1 : iResult := 4 ;  // SC작업지시
-    CVW_D_W2 : iResult := 5 ;  // 커튼 On/Off
+    CVW_D_W1 : iResult := 3 ;  // SC작업지시
+    CVW_D_W2 : iResult := 3 ;  // 커튼 On/Off
   end;
   Result := iResult ;
 end;
@@ -786,7 +879,6 @@ begin
   // Data Read
   //++++++++++++
 //  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
-//  Result := TActQJ71E71UDP(Self.FindComponent('ActQJ71E71UDP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0]);
   Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
 
 
@@ -890,7 +982,6 @@ begin
   // Data Read
   //++++++++++++
 //  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
-//  Result := TActQJ71E71UDP(Self.FindComponent('ActQJ71E71UDP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0]);
   Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
 
   if Result = 0 then
@@ -953,85 +1044,106 @@ begin
         ExecSQL ;
       end;
     except
-      if TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active then
-         TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active := False;
-      if TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))).Active then
-         TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))).Active := False;
+      on E: Exception do
+      begin
+        if TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active then
+           TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active := False;
+        if TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))).Active then
+           TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))).Active := False;
+
+        LogWriteStr(PLC_NO, Get_COMM_FLAG(PLC_NO) + 'PLC' + IntToStr(PLC_NO) + ' Update Error , ErrorCode [' + E.Message + '] ');
+      end;
     end;
   end else
   begin
     LogWriteStr(PLC_NO, Get_COMM_FLAG(PLC_NO) + 'PLC' + IntToStr(PLC_NO) + ' Memory Read Fail , ErrorCode [' + IntToStr(Result) + '] ');
     ReConnect(PLC_NO);
   end;
+
+  SCTREAD(1);
+  for i := 0 to 5 do
+  begin
+    if (SC_STATUS[1].D213[i] = '1') then
+    begin
+      COMM_FLAG[PLC_NO] := CVR_D_W1;
+      PLC_READ_WORD3(PLC_NO, i+1);
+    end;
+  end;
+
+  COMM_FLAG[PLC_NO] := CVR_D_W2;
 end;
 
 //==============================================================================
 // PLC_READ_Word3 -> Word RFID Data
 //==============================================================================
-procedure TfrmControl.PLC_READ_WORD3(PLC_NO: Integer);
+procedure TfrmControl.PLC_READ_WORD3(PLC_NO: Integer; Station: Integer);
 var
-  Result, Net_Size, i, j: integer ;
+  Result, Net_Size, i, j, k: integer ;
   strSQL_U, strSQL_I, strSQL, tempSQL, tempSQL2, tempSQL3 : String ;
   Net_Addr : WideString ;
-  Buffer : Array [0..191] of integer ;
-  WordData : Array [0..191] of String;
+//  Buffer : Array [1..6, 0..99] of integer ;
+//  WordData : Array [1..6, 0..99] of String;
 begin
-  FillChar(Buffer, sizeof(Buffer), 0 );
+  i := Station;
+  FillChar(RFID_DataBuffer, sizeof(RFID_DataBuffer), 0 );
 
   //++++++++++++++++++++++++++++++
-  // CH04 ~ CH05 : SC D(Bit)영역
+  //
   //++++++++++++++++++++++++++++++
-  Net_Addr := 'D1200' ;
-  Net_Size := 192 ;
-
+  case i of
+    1 : Net_Addr := 'D1100';
+    2 : Net_Addr := 'D1200';
+    3 : Net_Addr := 'D1300';
+    4 : Net_Addr := 'D1400';
+    5 : Net_Addr := 'D1500';
+    6 : Net_Addr := 'D1600';
+  end;
+  Net_Size := 100;
   //++++++++++++
   // Data Read
   //++++++++++++
-//  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
-//  Result := TActQJ71E71UDP(Self.FindComponent('ActQJ71E71UDP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0]);
-  Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
+  //  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
+//  Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[i][0] ) ;
+  Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, RFID_DataBuffer[0] ) ;
 
   if Result = 0 then
   begin
     LogWriteStr(PLC_NO, '[PLC' + IntToStr(PLC_NO) + ']: '+ Get_COMM_FLAG(PLC_NO) + ' Memory Read Success');
 
-    for i := Low(WordData) to High(WordData) do
+    for j := Low(RFID_DataWord) to High(RFID_DataWord) do
     begin
-      //0000
-      WordData[i] := HexaReverse(PLC_NO, IntToHex(Buffer[i], 4 )) ;
+      RFID_DataWord[j] := HexaReverse(PLC_NO, IntToHex(RFID_DataBuffer[j], 4));
     end;
 
     LogWriteStr(PLC_NO, 'PLC' + IntToStr(PLC_NO) + ' Read3 Data [' + intToStr(Net_Size) + ']');
 
     try
-      strSQL   := ' Select * from TT_SCC ' +
-                  '  Where SCC_NO = ''' + IntToStr(PLC_NO) + ''' ' +
-                  '    and SCC_SR = ''R'' ' ;
+      strSQL   := ' Select * from TT_SCC_RFID ' +
+                  '  Where PORT_NO = ''' + IntToStr(i) + ''' ';
 
       tempSQL  := '';
       tempSQL2 := '';
       tempSQL3 := '';
 
-      i := 0 ; j := 8 ;
-      while j <= 55 do
+      j := 0 ; k := 1 ;
+      while k <= 25 do
       begin
         // Update SQL
-        tempSQL  := tempSQL  + 'CH' + FormatFloat('00', j) + ' = ''' + WordData[i+0] + WordData[i+1] + WordData[i+2] + WordData[i+3] + ''', ';
+        tempSQL  := tempSQL  + 'CH' + FormatFloat('00', k) + ' = ''' + RFID_DataWord[j] + ''', ';
         // Insert SQL Field Name
-        tempSQL2 := tempSQL2 + 'CH' + FormatFloat('00', j) + ', ';
+        tempSQL2 := tempSQL2 + 'CH' + FormatFloat('00', k) + ', ';
         // Insert Value
-        tempSQL3 := tempSQL3 + '''' + WordData[i+0] + WordData[i+1] + WordData[i+2] + WordData[i+3]  + ''', ';
-        inc(i, 4);
-        Inc(j) ;
+        tempSQL3 := tempSQL3 + '''' + RFID_DataWord[j] + ''', ';
+        inc(j, 4);
+        Inc(k) ;
       end;
 
-      strSQL_U := ' Update TT_SCC ' +
-                  '    Set ' + tempSQL + ' SCC_DT = GETDATE() ' +
-                  '  Where SCC_NO = ''' + IntToStr(PLC_NO) + ''' ' +
-                  '    and SCC_SR = ''R'' ';
+      strSQL_U := ' Update TT_SCC_RFID ' +
+                  '    Set ' + tempSQL + ' UP_DT = GETDATE() ' +
+                  '  Where PORT_NO = ''' + IntToStr(i) + ''' ' ;
 
-      strSQL_I := ' Insert Into TT_SCC ( SCC_NO, ' +  tempSQL2 + ' SCC_DT, SCC_SR )' +
-                  '   VALUES ( ''' + IntToStr(PLC_NO) + ''', ' + tempSQL3 + ' GETDATE(), ''R'' ) ' ;
+      strSQL_I := ' Insert Into TT_SCC_RFID ( PORT_NO, ' +  tempSQL2 + ' UP_DT )' +
+                  '   VALUES ( ''' + IntToStr(i) + ''', ' + tempSQL3 + ' GETDATE() ) ' ;
 
       with TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))) do
       begin
@@ -1054,294 +1166,126 @@ begin
         ExecSQL ;
       end;
 
-      with TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO)) ) do
+      with TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO)) ) do
       begin
         Close;
         SQL.Clear;
-        j := 0;
-        for i := 1 to 6 do
-        begin
-          StrSQL := ' UPDATE TC_RFID ' +
-                      '  SET H01 = ' + QuotedStr(AsciiToString(WordData[j + 0])) +     // H00
-                      '    , H02 = ' + QuotedStr(AsciiToString(WordData[j + 1])) +     // H01
-                      '    , H03 = ' + QuotedStr(AsciiToString(WordData[j + 2])) +     // H02
-                      '    , H04 = ' + QuotedStr(AsciiToString(WordData[j + 3])) +     // H03
-                      '    , H05 = ' + QuotedStr(AsciiToString(WordData[j + 4])) +     // H04
-                      '    , H06 = ' + QuotedStr(AsciiToString(WordData[j + 5])) +     // H05
-                      '    , H07 = ' + QuotedStr(AsciiToString(WordData[j + 6])) +     // H06
-                      '    , H08 = ' + QuotedStr(AsciiToString(WordData[j + 7])) +     // H07
-                      '    , H09 = ' + QuotedStr(AsciiToString(WordData[j + 8])) +     // H08
-                      '    , H10 = ' + QuotedStr(AsciiToString(WordData[j + 9])) +     // H09
-                      '    , H11 = ' + QuotedStr(AsciiToString(WordData[j + 10])) +    // H10
-                      '    , H12 = ' + QuotedStr(AsciiToString(WordData[j + 11])) +    // H11
-                      '    , H13 = ' + QuotedStr(AsciiToString(WordData[j + 12])) +    // H12
-                      '    , H14 = ' + QuotedStr(AsciiToString(WordData[j + 13])) +    // H13
-                      '    , H15 = ' + QuotedStr(AsciiToString(WordData[j + 14])) +    // H14
-                      '    , H16 = ' + QuotedStr(AsciiToString(WordData[j + 15])) +    // H15
-                      '    , H17 = ' + QuotedStr(AsciiToString(WordData[j + 16])) +    // H16
-                      '    , H18 = ' + QuotedStr(AsciiToString(WordData[j + 17])) +    // H17
-                      '    , H19 = ' + QuotedStr(IntToStr(StrToInt('$' + (WordData[j + 18][3] + WordData[j + 18][4] + WordData[j + 18][1] + WordData[j + 18][2])))) +    // H18
-                      '    , H20 = ' + QuotedStr(AsciiToString(WordData[j + 19])) +    // H19
-                      '    , H21 = ' + QuotedStr(HexStrToBinStr(WordData[j + 20][3] + WordData[j + 20][4] + WordData[j + 20][1] + WordData[j + 20][2])) +    // H20
-                      '    , H22 = ' + QuotedStr(HexStrToBinStr(WordData[j + 21][3] + WordData[j + 21][4] + WordData[j + 21][1] + WordData[j + 21][2])) +    // H21
-                      '    , H23 = ' + QuotedStr(HexStrToBinStr(WordData[j + 22][3] + WordData[j + 22][4] + WordData[j + 22][1] + WordData[j + 22][2])) +    // H22
-                      '    , H24 = ' + QuotedStr(HexStrToBinStr(WordData[j + 23][3] + WordData[j + 23][4] + WordData[j + 23][1] + WordData[j + 23][2])) +
-                      '    , H25 = ' + QuotedStr(AsciiToString(WordData[j + 24])) +
-                      '    , H26 = ' + QuotedStr(AsciiToString(WordData[j + 25])) +
-                      '    , H27 = ' + QuotedStr(AsciiToString(WordData[j + 26])) +
-                      '    , H28 = ' + QuotedStr(AsciiToString(WordData[j + 27])) +
-                      '    , H29 = ' + QuotedStr(AsciiToString(WordData[j + 28])) +
-                      '    , H30 = ' + QuotedStr(AsciiToString(WordData[j + 29])) +
-                      '    , H31 = ' + QuotedStr(AsciiToString(WordData[j + 30])) +
-                      '    , H32 = ' + QuotedStr(AsciiToString(WordData[j + 31])) +
-                      '    , UPD_DT = GETDATE() ' +
-                     ' WHERE PORT_NO = ' + QuotedStr(IntToStr(i));
-          SQL.Text := StrSQL;
-          ExecSQL;
-          inc(j, 32);
-        end;
+        StrSQL := ' UPDATE TC_RFID ' +
+                    '  SET H00 = ' + QuotedStr(AsciiToString(RFID_DataWord[0])) +     // H00
+                    '    , H01 = ' + QuotedStr(AsciiToString(RFID_DataWord[1])) +     // H01
+                    '    , H02 = ' + QuotedStr(AsciiToString(RFID_DataWord[2])) +     // H02
+                    '    , H03 = ' + QuotedStr(AsciiToString(RFID_DataWord[3])) +     // H03
+                    '    , H04 = ' + QuotedStr(AsciiToString(RFID_DataWord[4])) +     // H04
+                    '    , H05 = ' + QuotedStr(AsciiToString(RFID_DataWord[5])) +     // H05
+                    '    , H06 = ' + QuotedStr(AsciiToString(RFID_DataWord[6])) +     // H06
+                    '    , H07 = ' + QuotedStr(AsciiToString(RFID_DataWord[7])) +     // H07
+                    '    , H08 = ' + QuotedStr(AsciiToString(RFID_DataWord[8])) +     // H08
+                    '    , H09 = ' + QuotedStr(AsciiToString(RFID_DataWord[9])) +     // H09
+                    '    , H10 = ' + QuotedStr(AsciiToString(RFID_DataWord[10])) +    // H10
+                    '    , H11 = ' + QuotedStr(AsciiToString(RFID_DataWord[11])) +    // H11
+                    '    , H12 = ' + QuotedStr(AsciiToString(RFID_DataWord[12])) +    // H12
+                    '    , H13 = ' + QuotedStr(AsciiToString(RFID_DataWord[13])) +    // H13
+                    '    , H14 = ' + QuotedStr(AsciiToString(RFID_DataWord[14])) +    // H14
+                    '    , H15 = ' + QuotedStr(AsciiToString(RFID_DataWord[15])) +    // H15
+                    '    , H16 = ' + QuotedStr(AsciiToString(RFID_DataWord[16])) +    // H16
+                    '    , H17 = ' + QuotedStr(AsciiToString(RFID_DataWord[17])) +    // H17
+                    '    , H18 = ' + QuotedStr(IntToStr(StrToInt('$' + (RFID_DataWord[18][3] + RFID_DataWord[18][4] + RFID_DataWord[18][1] + RFID_DataWord[18][2])))) +    // H18
+                    '    , H19 = ' + QuotedStr(AsciiToString(RFID_DataWord[19])) +    // H19
+                    '    , H20 = ' + QuotedStr(HexStrToBinStr(RFID_DataWord[20][3] + RFID_DataWord[20][4] + RFID_DataWord[20][1] + RFID_DataWord[20][2])) +    // H20
+                    '    , H21 = ' + QuotedStr(HexStrToBinStr(RFID_DataWord[21][3] + RFID_DataWord[21][4] + RFID_DataWord[21][1] + RFID_DataWord[21][2])) +    // H21
+                    '    , H22 = ' + QuotedStr(HexStrToBinStr(RFID_DataWord[22][3] + RFID_DataWord[22][4] + RFID_DataWord[22][1] + RFID_DataWord[22][2])) +    // H22
+                    '    , H23 = ' + QuotedStr(IntToStr(StrToInt('$' + (RFID_DataWord[23][3] + RFID_DataWord[23][4] + RFID_DataWord[23][1] + RFID_DataWord[23][2])))) +
+                    '    , H24 = ' + QuotedStr(AsciiToString(RFID_DataWord[24])) +
+                    '    , H25 = ' + QuotedStr(AsciiToString(RFID_DataWord[25])) +
+                    '    , H26 = ' + QuotedStr(AsciiToString(RFID_DataWord[26])) +
+                    '    , H27 = ' + QuotedStr(AsciiToString(RFID_DataWord[27])) +
+                    '    , H28 = ' + QuotedStr(AsciiToString(RFID_DataWord[28])) +
+                    '    , H29 = ' + QuotedStr(AsciiToString(RFID_DataWord[29])) +
+                    '    , H30 = ' + QuotedStr(AsciiToString(RFID_DataWord[30])) +
+                    '    , H31 = ' + QuotedStr(AsciiToString(RFID_DataWord[31])) +
+                    '    , H32 = ' + QuotedStr(AsciiToString(RFID_DataWord[32])) +
+                    '    , H33 = ' + QuotedStr(AsciiToString(RFID_DataWord[33])) +
+                    '    , H34 = ' + QuotedStr(AsciiToString(RFID_DataWord[34])) +
+                    '    , H35 = ' + QuotedStr(AsciiToString(RFID_DataWord[35])) +
+                    '    , H36 = ' + QuotedStr(AsciiToString(RFID_DataWord[36])) +
+                    '    , H37 = ' + QuotedStr(AsciiToString(RFID_DataWord[37])) +
+                    '    , H38 = ' + QuotedStr(AsciiToString(RFID_DataWord[38])) +
+                    '    , H39 = ' + QuotedStr(AsciiToString(RFID_DataWord[39])) +
+                    '    , H40 = ' + QuotedStr(AsciiToString(RFID_DataWord[40])) +
+                    '    , H41 = ' + QuotedStr(AsciiToString(RFID_DataWord[41])) +
+                    '    , H42 = ' + QuotedStr(AsciiToString(RFID_DataWord[42])) +
+                    '    , H43 = ' + QuotedStr(AsciiToString(RFID_DataWord[43])) +
+                    '    , H44 = ' + QuotedStr(AsciiToString(RFID_DataWord[44])) +
+                    '    , H45 = ' + QuotedStr(AsciiToString(RFID_DataWord[45])) +
+                    '    , H46 = ' + QuotedStr(AsciiToString(RFID_DataWord[46])) +
+                    '    , H47 = ' + QuotedStr(AsciiToString(RFID_DataWord[47])) +
+                    '    , H48 = ' + QuotedStr(AsciiToString(RFID_DataWord[48])) +
+                    '    , H49 = ' + QuotedStr(AsciiToString(RFID_DataWord[49])) +
+                    '    , H50 = ' + QuotedStr(AsciiToString(RFID_DataWord[50])) +
+                    '    , H51 = ' + QuotedStr(AsciiToString(RFID_DataWord[51])) +
+                    '    , H52 = ' + QuotedStr(AsciiToString(RFID_DataWord[52])) +
+                    '    , H53 = ' + QuotedStr(AsciiToString(RFID_DataWord[53])) +
+                    '    , H54 = ' + QuotedStr(AsciiToString(RFID_DataWord[54])) +
+                    '    , H55 = ' + QuotedStr(AsciiToString(RFID_DataWord[55])) +
+                    '    , H56 = ' + QuotedStr(AsciiToString(RFID_DataWord[56])) +
+                    '    , H57 = ' + QuotedStr(AsciiToString(RFID_DataWord[57])) +
+                    '    , H58 = ' + QuotedStr(AsciiToString(RFID_DataWord[58])) +
+                    '    , H59 = ' + QuotedStr(AsciiToString(RFID_DataWord[59])) +
+                    '    , H60 = ' + QuotedStr(AsciiToString(RFID_DataWord[60])) +
+                    '    , H61 = ' + QuotedStr(AsciiToString(RFID_DataWord[61])) +
+                    '    , H62 = ' + QuotedStr(AsciiToString(RFID_DataWord[62])) +
+                    '    , H63 = ' + QuotedStr(AsciiToString(RFID_DataWord[63])) +
+                    '    , H64 = ' + QuotedStr(AsciiToString(RFID_DataWord[64])) +
+                    '    , H65 = ' + QuotedStr(AsciiToString(RFID_DataWord[65])) +
+                    '    , H66 = ' + QuotedStr(AsciiToString(RFID_DataWord[66])) +
+                    '    , H67 = ' + QuotedStr(AsciiToString(RFID_DataWord[67])) +
+                    '    , H68 = ' + QuotedStr(AsciiToString(RFID_DataWord[68])) +
+                    '    , H69 = ' + QuotedStr(AsciiToString(RFID_DataWord[69])) +
+                    '    , H70 = ' + QuotedStr(AsciiToString(RFID_DataWord[70])) +
+                    '    , H71 = ' + QuotedStr(AsciiToString(RFID_DataWord[71])) +
+                    '    , H72 = ' + QuotedStr(AsciiToString(RFID_DataWord[72])) +
+                    '    , H73 = ' + QuotedStr(AsciiToString(RFID_DataWord[73])) +
+                    '    , H74 = ' + QuotedStr(AsciiToString(RFID_DataWord[74])) +
+                    '    , H75 = ' + QuotedStr(AsciiToString(RFID_DataWord[75])) +
+                    '    , H76 = ' + QuotedStr(AsciiToString(RFID_DataWord[76])) +
+                    '    , H77 = ' + QuotedStr(AsciiToString(RFID_DataWord[77])) +
+                    '    , H78 = ' + QuotedStr(AsciiToString(RFID_DataWord[78])) +
+                    '    , H79 = ' + QuotedStr(AsciiToString(RFID_DataWord[79])) +
+                    '    , H80 = ' + QuotedStr(AsciiToString(RFID_DataWord[80])) +
+                    '    , H81 = ' + QuotedStr(AsciiToString(RFID_DataWord[81])) +
+                    '    , H82 = ' + QuotedStr(AsciiToString(RFID_DataWord[82])) +
+                    '    , H83 = ' + QuotedStr(AsciiToString(RFID_DataWord[83])) +
+                    '    , H84 = ' + QuotedStr(AsciiToString(RFID_DataWord[84])) +
+                    '    , H85 = ' + QuotedStr(AsciiToString(RFID_DataWord[85])) +
+                    '    , H86 = ' + QuotedStr(AsciiToString(RFID_DataWord[86])) +
+                    '    , H87 = ' + QuotedStr(AsciiToString(RFID_DataWord[87])) +
+                    '    , H88 = ' + QuotedStr(AsciiToString(RFID_DataWord[88])) +
+                    '    , H89 = ' + QuotedStr(AsciiToString(RFID_DataWord[89])) +
+                    '    , H90 = ' + QuotedStr(AsciiToString(RFID_DataWord[90])) +
+                    '    , H91 = ' + QuotedStr(AsciiToString(RFID_DataWord[91])) +
+                    '    , H92 = ' + QuotedStr(AsciiToString(RFID_DataWord[92])) +
+                    '    , H93 = ' + QuotedStr(AsciiToString(RFID_DataWord[93])) +
+                    '    , H94 = ' + QuotedStr(AsciiToString(RFID_DataWord[94])) +
+                    '    , H95 = ' + QuotedStr(AsciiToString(RFID_DataWord[95])) +
+                    '    , H96 = ' + QuotedStr(AsciiToString(RFID_DataWord[96])) +
+                    '    , H97 = ' + QuotedStr(AsciiToString(RFID_DataWord[97])) +
+                    '    , H98 = ' + QuotedStr(AsciiToString(RFID_DataWord[98])) +
+                    '    , H99 = ' + QuotedStr(AsciiToString(RFID_DataWord[99])) +
+                    '    , UPD_DT = GETDATE() ' +
+                   ' WHERE PORT_NO = ' + QuotedStr(IntToStr(i));
+        SQL.Text := StrSQL;
+        ExecSQL;
       end;
-
     except
-      if TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active then
-         TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active := False;
-      if TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))).Active then
-         TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))).Active := False;
-    end;
-  end else
-  begin
-    LogWriteStr(PLC_NO, Get_COMM_FLAG(PLC_NO) + 'PLC' + IntToStr(PLC_NO) + ' Memory Read Fail , ErrorCode [' + IntToStr(Result) + '] ');
-    ReConnect(PLC_NO);
-  end;
-end;
-
-//==============================================================================
-// PLC_READ_Word3 -> Word RFID Data
-//==============================================================================
-procedure TfrmControl.PLC_READ_WORD4(PLC_NO: Integer);
-var
-  Result, Net_Size, i, j, k: integer ;
-  strSQL_U, strSQL_I, strSQL, tempSQL, tempSQL2, tempSQL3 : String ;
-  Net_Addr : WideString ;
-  Buffer : Array [1..6, 0..99] of integer ;
-  WordData : Array [1..6, 0..99] of String;
-begin
-  FillChar(Buffer, sizeof(Buffer), 0 );
-
-  //++++++++++++++++++++++++++++++
-  //
-  //++++++++++++++++++++++++++++++
-  for i := 1 to 6 do
-  begin
-    case i of
-      1 : Net_Addr := 'D1100';
-      2 : Net_Addr := 'D1200';
-      3 : Net_Addr := 'D1300';
-      4 : Net_Addr := 'D1400';
-      5 : Net_Addr := 'D1500';
-      6 : Net_Addr := 'D1600';
-    end;
-    Net_Size := 100;
-    //++++++++++++
-    // Data Read
-    //++++++++++++
-    //  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0] ) ;
-    //  Result := TActQJ71E71UDP(Self.FindComponent('ActQJ71E71UDP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[0]);
-    Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).ReadDeviceBlock(Net_Addr, Net_Size, Buffer[i][0] ) ;
-
-    if Result = 0 then
-    begin
-      LogWriteStr(PLC_NO, '[PLC' + IntToStr(PLC_NO) + ']: '+ Get_COMM_FLAG(PLC_NO) + ' Memory Read Success');
-
-      for j := Low(WordData[i]) to High(WordData[i]) do
+      on E: Exception do
       begin
-        WordData[i][j] := HexaReverse(PLC_NO, IntToHex(Buffer[i][j], 4));
-      end;
-
-      LogWriteStr(PLC_NO, 'PLC' + IntToStr(PLC_NO) + ' Read3 Data [' + intToStr(Net_Size) + ']');
-
-      try
-        strSQL   := ' Select * from TT_SCC_RFID ' +
-                    '  Where PORT_NO = ''' + IntToStr(i) + ''' ';
-
-        tempSQL  := '';
-        tempSQL2 := '';
-        tempSQL3 := '';
-
-        j := 0 ; k := 1 ;
-        while k <= 25 do
-        begin
-          // Update SQL
-          tempSQL  := tempSQL  + 'CH' + FormatFloat('00', k) + ' = ''' + WordData[i][j] + ''', ';
-          // Insert SQL Field Name
-          tempSQL2 := tempSQL2 + 'CH' + FormatFloat('00', k) + ', ';
-          // Insert Value
-          tempSQL3 := tempSQL3 + '''' + WordData[i][j] + ''', ';
-          inc(j, 4);
-          Inc(k) ;
-        end;
-
-        strSQL_U := ' Update TT_SCC_RFID ' +
-                    '    Set ' + tempSQL + ' UP_DT = GETDATE() ' +
-                    '  Where PORT_NO = ''' + IntToStr(i) + ''' ' ;
-
-        strSQL_I := ' Insert Into TT_SCC_RFID ( PORT_NO, ' +  tempSQL2 + ' UP_DT )' +
-                    '   VALUES ( ''' + IntToStr(i) + ''', ' + tempSQL3 + ' GETDATE() ) ' ;
-
-        with TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))) do
-        begin
-          Close ;
-          SQL.Clear;
-          SQL.Text := strSQL ;
-          Open;
-          if RecordCount > 0 then
-               strSQL := strSQL_U
-          else strSQL := strSQL_I;
-
-          Close;
-        end;
-
-        with TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))) do
-        begin
-          Close;
-          SQL.Clear;
-          SQL.Text := strSQL;
-          ExecSQL ;
-        end;
-
-        with TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO)) ) do
-        begin
-          Close;
-          SQL.Clear;
-          StrSQL := ' UPDATE TC_RFID ' +
-                      '  SET H00 = ' + QuotedStr(AsciiToString(WordData[i][0])) +     // H00
-                      '    , H01 = ' + QuotedStr(AsciiToString(WordData[i][1])) +     // H01
-                      '    , H02 = ' + QuotedStr(AsciiToString(WordData[i][2])) +     // H02
-                      '    , H03 = ' + QuotedStr(AsciiToString(WordData[i][3])) +     // H03
-                      '    , H04 = ' + QuotedStr(AsciiToString(WordData[i][4])) +     // H04
-                      '    , H05 = ' + QuotedStr(AsciiToString(WordData[i][5])) +     // H05
-                      '    , H06 = ' + QuotedStr(AsciiToString(WordData[i][6])) +     // H06
-                      '    , H07 = ' + QuotedStr(AsciiToString(WordData[i][7])) +     // H07
-                      '    , H08 = ' + QuotedStr(AsciiToString(WordData[i][8])) +     // H08
-                      '    , H09 = ' + QuotedStr(AsciiToString(WordData[i][9])) +     // H09
-                      '    , H10 = ' + QuotedStr(AsciiToString(WordData[i][10])) +    // H10
-                      '    , H11 = ' + QuotedStr(AsciiToString(WordData[i][11])) +    // H11
-                      '    , H12 = ' + QuotedStr(AsciiToString(WordData[i][12])) +    // H12
-                      '    , H13 = ' + QuotedStr(AsciiToString(WordData[i][13])) +    // H13
-                      '    , H14 = ' + QuotedStr(AsciiToString(WordData[i][14])) +    // H14
-                      '    , H15 = ' + QuotedStr(AsciiToString(WordData[i][15])) +    // H15
-                      '    , H16 = ' + QuotedStr(AsciiToString(WordData[i][16])) +    // H16
-                      '    , H17 = ' + QuotedStr(AsciiToString(WordData[i][17])) +    // H17
-                      '    , H18 = ' + QuotedStr(IntToStr(StrToInt('$' + (WordData[i][18][3] + WordData[i][18][4] + WordData[i][18][1] + WordData[i][18][2])))) +    // H18
-                      '    , H19 = ' + QuotedStr(AsciiToString(WordData[i][19])) +    // H19
-                      '    , H20 = ' + QuotedStr(HexStrToBinStr(WordData[i][20][3] + WordData[i][20][4] + WordData[i][20][1] + WordData[i][20][2])) +    // H20
-                      '    , H21 = ' + QuotedStr(HexStrToBinStr(WordData[i][21][3] + WordData[i][21][4] + WordData[i][21][1] + WordData[i][21][2])) +    // H21
-                      '    , H22 = ' + QuotedStr(HexStrToBinStr(WordData[i][22][3] + WordData[i][22][4] + WordData[i][22][1] + WordData[i][22][2])) +    // H22
-                      '    , H23 = ' + QuotedStr(IntToStr(StrToInt('$' + (WordData[i][23][3] + WordData[i][23][4] + WordData[i][23][1] + WordData[i][23][2])))) +
-                      '    , H24 = ' + QuotedStr(AsciiToString(WordData[i][24])) +
-                      '    , H25 = ' + QuotedStr(AsciiToString(WordData[i][25])) +
-                      '    , H26 = ' + QuotedStr(AsciiToString(WordData[i][26])) +
-                      '    , H27 = ' + QuotedStr(AsciiToString(WordData[i][27])) +
-                      '    , H28 = ' + QuotedStr(AsciiToString(WordData[i][28])) +
-                      '    , H29 = ' + QuotedStr(AsciiToString(WordData[i][29])) +
-                      '    , H30 = ' + QuotedStr(AsciiToString(WordData[i][30])) +
-                      '    , H31 = ' + QuotedStr(AsciiToString(WordData[i][31])) +
-                      '    , H32 = ' + QuotedStr(AsciiToString(WordData[i][32])) +
-                      '    , H33 = ' + QuotedStr(AsciiToString(WordData[i][33])) +
-                      '    , H34 = ' + QuotedStr(AsciiToString(WordData[i][34])) +
-                      '    , H35 = ' + QuotedStr(AsciiToString(WordData[i][35])) +
-                      '    , H36 = ' + QuotedStr(AsciiToString(WordData[i][36])) +
-                      '    , H37 = ' + QuotedStr(AsciiToString(WordData[i][37])) +
-                      '    , H38 = ' + QuotedStr(AsciiToString(WordData[i][38])) +
-                      '    , H39 = ' + QuotedStr(AsciiToString(WordData[i][39])) +
-                      '    , H40 = ' + QuotedStr(AsciiToString(WordData[i][40])) +
-                      '    , H41 = ' + QuotedStr(AsciiToString(WordData[i][41])) +
-                      '    , H42 = ' + QuotedStr(AsciiToString(WordData[i][42])) +
-                      '    , H43 = ' + QuotedStr(AsciiToString(WordData[i][43])) +
-                      '    , H44 = ' + QuotedStr(AsciiToString(WordData[i][44])) +
-                      '    , H45 = ' + QuotedStr(AsciiToString(WordData[i][45])) +
-                      '    , H46 = ' + QuotedStr(AsciiToString(WordData[i][46])) +
-                      '    , H47 = ' + QuotedStr(AsciiToString(WordData[i][47])) +
-                      '    , H48 = ' + QuotedStr(AsciiToString(WordData[i][48])) +
-                      '    , H49 = ' + QuotedStr(AsciiToString(WordData[i][49])) +
-                      '    , H50 = ' + QuotedStr(AsciiToString(WordData[i][50])) +
-                      '    , H51 = ' + QuotedStr(AsciiToString(WordData[i][51])) +
-                      '    , H52 = ' + QuotedStr(AsciiToString(WordData[i][52])) +
-                      '    , H53 = ' + QuotedStr(AsciiToString(WordData[i][53])) +
-                      '    , H54 = ' + QuotedStr(AsciiToString(WordData[i][54])) +
-                      '    , H55 = ' + QuotedStr(AsciiToString(WordData[i][55])) +
-                      '    , H56 = ' + QuotedStr(AsciiToString(WordData[i][56])) +
-                      '    , H57 = ' + QuotedStr(AsciiToString(WordData[i][57])) +
-                      '    , H58 = ' + QuotedStr(AsciiToString(WordData[i][58])) +
-                      '    , H59 = ' + QuotedStr(AsciiToString(WordData[i][59])) +
-                      '    , H60 = ' + QuotedStr(AsciiToString(WordData[i][60])) +
-                      '    , H61 = ' + QuotedStr(AsciiToString(WordData[i][61])) +
-                      '    , H62 = ' + QuotedStr(AsciiToString(WordData[i][62])) +
-                      '    , H63 = ' + QuotedStr(AsciiToString(WordData[i][63])) +
-                      '    , H64 = ' + QuotedStr(AsciiToString(WordData[i][64])) +
-                      '    , H65 = ' + QuotedStr(AsciiToString(WordData[i][65])) +
-                      '    , H66 = ' + QuotedStr(AsciiToString(WordData[i][66])) +
-                      '    , H67 = ' + QuotedStr(AsciiToString(WordData[i][67])) +
-                      '    , H68 = ' + QuotedStr(AsciiToString(WordData[i][68])) +
-                      '    , H69 = ' + QuotedStr(AsciiToString(WordData[i][69])) +
-                      '    , H70 = ' + QuotedStr(AsciiToString(WordData[i][70])) +
-                      '    , H71 = ' + QuotedStr(AsciiToString(WordData[i][71])) +
-                      '    , H72 = ' + QuotedStr(AsciiToString(WordData[i][72])) +
-                      '    , H73 = ' + QuotedStr(AsciiToString(WordData[i][73])) +
-                      '    , H74 = ' + QuotedStr(AsciiToString(WordData[i][74])) +
-                      '    , H75 = ' + QuotedStr(AsciiToString(WordData[i][75])) +
-                      '    , H76 = ' + QuotedStr(AsciiToString(WordData[i][76])) +
-                      '    , H77 = ' + QuotedStr(AsciiToString(WordData[i][77])) +
-                      '    , H78 = ' + QuotedStr(AsciiToString(WordData[i][78])) +
-                      '    , H79 = ' + QuotedStr(AsciiToString(WordData[i][79])) +
-                      '    , H80 = ' + QuotedStr(AsciiToString(WordData[i][80])) +
-                      '    , H81 = ' + QuotedStr(AsciiToString(WordData[i][81])) +
-                      '    , H82 = ' + QuotedStr(AsciiToString(WordData[i][82])) +
-                      '    , H83 = ' + QuotedStr(AsciiToString(WordData[i][83])) +
-                      '    , H84 = ' + QuotedStr(AsciiToString(WordData[i][84])) +
-                      '    , H85 = ' + QuotedStr(AsciiToString(WordData[i][85])) +
-                      '    , H86 = ' + QuotedStr(AsciiToString(WordData[i][86])) +
-                      '    , H87 = ' + QuotedStr(AsciiToString(WordData[i][87])) +
-                      '    , H88 = ' + QuotedStr(AsciiToString(WordData[i][88])) +
-                      '    , H89 = ' + QuotedStr(AsciiToString(WordData[i][89])) +
-                      '    , H90 = ' + QuotedStr(AsciiToString(WordData[i][90])) +
-                      '    , H91 = ' + QuotedStr(AsciiToString(WordData[i][91])) +
-                      '    , H92 = ' + QuotedStr(AsciiToString(WordData[i][92])) +
-                      '    , H93 = ' + QuotedStr(AsciiToString(WordData[i][93])) +
-                      '    , H94 = ' + QuotedStr(AsciiToString(WordData[i][94])) +
-                      '    , H95 = ' + QuotedStr(AsciiToString(WordData[i][95])) +
-                      '    , H96 = ' + QuotedStr(AsciiToString(WordData[i][96])) +
-                      '    , H97 = ' + QuotedStr(AsciiToString(WordData[i][97])) +
-                      '    , H98 = ' + QuotedStr(AsciiToString(WordData[i][98])) +
-                      '    , H99 = ' + QuotedStr(AsciiToString(WordData[i][99])) +
-                      '    , UPD_DT = GETDATE() ' +
-                     ' WHERE PORT_NO = ' + QuotedStr(IntToStr(i));
-          SQL.Text := StrSQL;
-          ExecSQL;
-        end;
-      except
         if TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active then
            TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active := False;
         if TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))).Active then
            TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))).Active := False;
+
+        LogWriteStr(PLC_NO, Get_COMM_FLAG(PLC_NO) + 'PLC' + IntToStr(PLC_NO) + ' Update Error , ErrorCode [' + E.Message + '] ');
       end;
-    end;
-
-  end;
-
-
-  if Result = 0 then
-  begin
-    try
-
-
-
-
-    except
-      if TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active then
-         TAdoQuery(Self.FindComponent('qrySelect' + IntToStr(PLC_NO))).Active := False;
-      if TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))).Active then
-         TAdoQuery(Self.FindComponent('qryUpdate' + IntToStr(PLC_NO))).Active := False;
     end;
   end else
   begin
@@ -1406,7 +1350,6 @@ begin
         Net_Size := 10 ;
 
         //Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer[0] ) ;
-        //Result := TActQJ71E71UDP(Self.FindComponent('ActQJ71E71UDP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer[0]);
         Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer[0]);
       end else
       //+++++++++++++++++++++++++++++++
@@ -1420,7 +1363,6 @@ begin
         Net_Size := 1 ;
 
       //  Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Move ) ;
-      //  Result := TActQJ71E71UDP(Self.FindComponent('ActQJ71E71UDP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Move);
         Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Move);
       end else
       //+++++++++++++++++++++++++++++++
@@ -1444,7 +1386,6 @@ begin
         Net_Size := 11 ;
 
 //        Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Clear[0] ) ;
-//        Result := TActQJ71E71UDP(Self.FindComponent('ActQJ71E71UDP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Clear[0]);
         Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Clear[0]);
       end;
 
@@ -1489,7 +1430,7 @@ var
   strSQL : String ;
   Net_Addr : WideString ;
   Buffer_Door : Word;
-  Buffer_Clear : Array[0..32] of Word;
+  Buffer_Clear : Array[0..99] of Word;
   PLC_ORD  : TPLC_ORDER ;
 begin
   try
@@ -1516,24 +1457,24 @@ begin
         Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Door);
       end else
       //+++++++++++++++++++++++++++++++
-      // RFID 1번 초기화
+      // RFID 초기화
       //+++++++++++++++++++++++++++++++
       if (Idx in [1, 2, 3, 4, 5, 6]) then
       begin
-        for i := 0 to 31 do
+        for i := 0 to 99 do
         begin
           Buffer_Clear[i] := StrToInt('$0000');
         end;
 
         case Idx of
-          1 : Net_Addr := 'D1200';
-          2 : Net_Addr := 'D1232';
-          3 : Net_Addr := 'D1264';
-          4 : Net_Addr := 'D1296';
-          5 : Net_Addr := 'D1328';
-          6 : Net_Addr := 'D1360';
+          1 : Net_Addr := 'D1100';
+          2 : Net_Addr := 'D1200';
+          3 : Net_Addr := 'D1300';
+          4 : Net_Addr := 'D1400';
+          5 : Net_Addr := 'D1500';
+          6 : Net_Addr := 'D1600';
         end;
-        Net_Size := 32;
+        Net_Size := 100;
 
 //        Result := TActQJ71E71TCP(Self.FindComponent('ActQJ71E71TCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Clear[0] ) ;
         Result := TActQNUDECPUTCP(Self.FindComponent('ActQNUDECPUTCP' + IntToStr(PLC_NO))).WriteDeviceBlock2(Net_Addr, Net_Size, Buffer_Clear[0]);
@@ -1573,7 +1514,7 @@ begin
   Result := False ;
   try
     // 작업지시할 데이터를 검색
-    StrSQL := ' SELECT SCORD_NO, ' +
+    StrSQL := ' SELECT TOP 1 SCORD_NO, ' +
               '        SCORD_D100, SCORD_D101, SCORD_D102,  ' +
               '        SCORD_D103, SCORD_D104, SCORD_D105,  ' +
               '        SCORD_D106, SCORD_D107, SCORD_D108,  ' +
@@ -1627,7 +1568,7 @@ begin
   Result := False ;
   try
     // 작업지시할 데이터를 검색
-    StrSQL := ' SELECT D111, ' +
+    StrSQL := ' SELECT TOP 1 D111, ' +
               '        ORD_STATUS ' +
               '   FROM TT_PLCORD ' +
               '  ORDER BY ORD_DT ' ;
@@ -1706,8 +1647,8 @@ begin
   Result := False;
   try
 
-    StrSQL := ' Delete From TT_PLCORD ' +
-              '  Where PLC_NO = ''' + IntToStr(PLC_NO)      + ''' ' +  // SC호기
+    StrSQL := ' Delete Top(1) From TT_PLCORD ' +
+              '  Where PLC_NO = ''' + IntToStr(PLC_NO)      + ''' ' +
               '    and ORD_STATUS = ''' + PLC_ORD.ORD_ST + ''' ' ;  // 지시타입
 
     with TAdoQuery(Self.FindComponent('qryInfo' + IntToStr(PLC_NO))) do
